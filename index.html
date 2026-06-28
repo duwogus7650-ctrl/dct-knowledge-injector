@@ -191,6 +191,9 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
 .grade[data-g="2"]:hover{border-color:var(--inject-amber)}.grade[data-g="2"] .g{color:var(--inject-amber)}
 .grade[data-g="3"]:hover{border-color:var(--signal-cyan)}.grade[data-g="3"] .g{color:var(--signal-cyan)}
 .grade[data-g="4"]:hover{border-color:var(--teal-data)}.grade[data-g="4"] .g{color:var(--teal-data)}
+.grade .gsub{display:block;font-family:var(--font-ui);font-size:9.5px;color:var(--ink-500);margin-top:2px}
+.grade-guide{font-family:var(--font-ui);font-size:12px;color:var(--ink-300);text-align:center;max-width:min(640px,92vw);line-height:1.55;margin-top:14px}
+.grade-guide b{color:var(--inject-amber)}
 .rv-hide{display:none}
 .rv-exit{position:absolute;top:18px;right:18px;border:1px solid var(--hairline);background:transparent;color:var(--ink-300);
   width:32px;height:32px;border-radius:var(--radius);font-size:16px;line-height:1}
@@ -310,11 +313,11 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
             <input type="file" id="nut-input" accept=".pdf,.pptx,.docx,.txt,.md" hidden>
           </div>
         </div>
-        <div class="hint">또는 자료를 붙여넣거나, <b>자연어로 주제를 물어보세요</b> — 예: "RAG가 뭔지 처음부터", "스페인어 기초 30개". 파일/자료가 없으면 주제만으로도 AI가 지식을 만들어 줍니다(Claude 키 필요).</div>
+        <div class="hint">자료를 붙여넣거나 파일을 올리거나, <b>자연어로 주제를 물어보세요</b> — 예: "RAG가 뭔지 처음부터", "스페인어 기초 30개". <b>Claude API 키</b>로 고품질 카드를 생성합니다(설명·기억술 포함).</div>
         <textarea id="src" placeholder="여기에 자료 붙여넣기  ·  또는 배우고 싶은 주제를 자연어로 입력"></textarea>
         <div class="row">
-          <button class="btn" id="distillBtn">⚛ 분석 · DISTILL</button>
-          <button class="btn ghost sm" id="sampleBtn">샘플</button>
+          <button class="btn ghost sm" id="sampleBtn">샘플 텍스트</button>
+          <button class="btn ghost sm" id="keyBtn">🔑 Claude 키 연결</button>
         </div>
         <div class="src-block" style="margin-top:16px">
           <label class="src-label" for="nut-model">MODEL<span class="src-hint">inference core</span></label>
@@ -337,8 +340,10 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
           </div>
         </div>
         <div class="row">
-          <button class="btn" id="enhanceBtn" title="선택한 모델·노력으로 카드 생성">✦ Claude로 카드 생성</button>
-          <button class="btn ghost sm" id="topicBtn" title="자료 없이 주제만으로 지식 생성">🔍 주제로 찾기</button>
+          <button class="btn" id="enhanceBtn" style="flex:1;border-color:var(--signal-cyan-dim);color:var(--signal-cyan)" title="자료/파일을 선택한 모델·노력으로 카드 생성">✦ Claude로 카드 생성</button>
+        </div>
+        <div class="row">
+          <button class="btn ghost sm" id="topicBtn" style="width:100%" title="자료 없이 주제만으로 지식 생성">🔍 주제만으로 지식 찾기 (파일 불필요)</button>
         </div>
         <div class="hint" id="srcStat" style="margin-top:10px"></div>
       </div>
@@ -371,7 +376,7 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
     <!-- REVIEW OVERLAY -->
     <div id="review">
       <button class="rv-exit" id="rvExit" title="세션 종료 (Esc)">×</button>
-      <div class="rv-meta">INJECTING PACKET <b id="rvIdx">1</b> / <span id="rvTotal">1</span> · 남은 패킷 <span id="rvLeft" class="num">0</span></div>
+      <div class="rv-meta">주입 중 <b id="rvIdx">1</b> / <span id="rvTotal">1</span> 장 · 남은 카드 <span id="rvLeft" class="num">0</span> · 답을 먼저 떠올린 뒤 확인하세요</div>
 
       <div class="card" id="cardEl">
         <div class="ctype"><span class="lbl" id="cardType">CLOZE</span><span class="src" id="cardSrc">heuristic</span></div>
@@ -384,13 +389,14 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
       </div>
 
       <div class="rv-actions" id="revealRow">
-        <button class="rv-reveal" id="revealBtn">REVEAL · 정답 확인<span class="kbd">Space</span></button>
+        <button class="rv-reveal" id="revealBtn">정답 확인 <span style="opacity:.65;font-size:11px;font-family:var(--font-ui)">(먼저 머릿속으로 떠올려보세요)</span><span class="kbd">Space</span></button>
       </div>
+      <div class="grade-guide rv-hide" id="gradeGuide">방금 얼마나 잘 떠올렸나요? <b>솔직하게</b> 누르면 잊을 때쯤 자동으로 다시 보여줍니다 · 아래 숫자 = 다음 복습까지</div>
       <div class="rv-actions rv-hide" id="gradeRow">
-        <button class="grade" data-g="1"><span class="g">AGAIN</span><span class="ivl" id="iv1">&lt;1d</span><span class="kbd">1</span></button>
-        <button class="grade" data-g="2"><span class="g">HARD</span><span class="ivl" id="iv2"></span><span class="kbd">2</span></button>
-        <button class="grade" data-g="3"><span class="g">GOOD</span><span class="ivl" id="iv3"></span><span class="kbd">3</span></button>
-        <button class="grade" data-g="4"><span class="g">EASY</span><span class="ivl" id="iv4"></span><span class="kbd">4</span></button>
+        <button class="grade" data-g="1"><span class="g">다시</span><span class="gsub">못 외움</span><span class="ivl" id="iv1">&lt;1일</span><span class="kbd">1</span></button>
+        <button class="grade" data-g="2"><span class="g">어려움</span><span class="gsub">겨우 외움</span><span class="ivl" id="iv2"></span><span class="kbd">2</span></button>
+        <button class="grade" data-g="3"><span class="g">외웠다</span><span class="gsub">무난</span><span class="ivl" id="iv3"></span><span class="kbd">3</span></button>
+        <button class="grade" data-g="4"><span class="g">쉬움</span><span class="gsub">완벽</span><span class="ivl" id="iv4"></span><span class="kbd">4</span></button>
       </div>
 
       <!-- summary -->
@@ -448,10 +454,11 @@ textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0
       <p style="margin-top:0"><b>카파시의 도서관, 뒤집어서.</b> "이 모든 책을 다 배울 순 없다 → 그러면 그걸 배울 수 있는 무언가를 만들자." 이 단말기가 그 무언가입니다. 지식을 던지면 대신 소화하고, 인간 뇌가 가장 잘 흡수하는 방식으로 당신 머리에 <b>주입</b>합니다.</p>
       <p><b>주입의 과학(정직하게).</b> 신경망에 지식을 직접 <i>쓰는</i> 뇌 케이블은 아직 없습니다. 그래서 케이블 대신 가장 강력한 실증 학습기제 — <b>간격반복 + 능동인출</b> — 을 자동화했습니다. 망각곡선을 거슬러 "잊기 직전"마다 인출시켜 장기기억으로 고정합니다.</p>
       <p><b>엔진:</b> <code>FSRS-5</code> — Anki에 탑재된, 10억+ 복습 데이터로 학습된 최신 스케줄러. 난이도(D)·안정성(S)·회상확률(R)을 분리 모델링합니다. 좌하단 SELF-TEST가 알고리즘을 6개 레퍼런스값에 대조해 매 로드마다 검증합니다.</p>
-      <p><b>흐름:</b> ① 자료 넣기 — <b>PDF·PPTX·DOCX·TXT 끌어놓기</b>, 텍스트 붙여넣기, 또는 <b>자연어로 주제 입력</b> → ② DISTILL(오프라인 추출, 환각 0) 또는 ✦ Claude로 카드 생성 / 🔍 주제로 찾기 → ③ INITIATE INJECTION → 인출·채점하면 뇌 격자가 채워집니다. 덱은 이 기기에 저장돼 이어집니다.</p>
+      <p><b>흐름:</b> ① 자료 넣기 — <b>PDF·PPTX·DOCX·TXT 끌어놓기</b>, 텍스트 붙여넣기, 또는 <b>자연어로 주제 입력</b> → ② <b>✦ Claude로 카드 생성</b>(자료 기반) 또는 <b>🔍 주제만으로 지식 찾기</b> → ③ INITIATE INJECTION → 복습. 덱은 이 기기에 저장돼 이어집니다. (Claude API 키 필요)</p>
+      <p><b>복습 채점(다시/어려움/외웠다/쉬움):</b> 카드 질문을 보고 답을 <b>스스로 떠올린 뒤</b> 정답을 확인하고, 방금 얼마나 잘 떠올렸는지 솔직하게 누릅니다. 앱이 맞다/틀리다 채점하는 게 아니라 본인이 누르는 거예요. 버튼의 "○일"은 그 카드를 다음에 다시 보여줄 시점 — 잘 외운 건 띄엄띄엄, 못 외운 건 자주(잊기 직전마다) 보여줘 최소 노력으로 장기기억에 박습니다.</p>
       <p><b>모델 &amp; 노력:</b> 좌측에서 <code>Haiku 4.5</code>(빠름)·<code>Sonnet 4.6</code>(균형)·<code>Opus 4.8</code>(최고) 중 선택. 노력은 Quick → Standard → Deep → <b>ULTRACODE</b>(멀티패스 + 최대 추론으로 더 깊고 넓게). 모델별 API 규약을 자동 준수합니다.</p>
       <p><b>자연어 토픽 모드:</b> 파일이 없어도 "RAG가 뭔지 처음부터", "스페인어 기초 30개"처럼 물어보면 AI가 그 주제 지식을 찾아 카드로 만듭니다(Claude 키 필요).</p>
-      <p style="color:var(--ink-500);font-size:12px">100% 클라이언트 사이드. 서버 없음. 코어(추출·FSRS·복습)는 오프라인. PDF/PPTX/DOCX는 첫 사용 시 라이브러리 1회 다운로드, Claude 생성/토픽은 네트워크 필요.</p>
+      <p style="color:var(--ink-500);font-size:12px">100% 클라이언트 사이드(서버 없음). 카드 생성은 <b>Claude API 키</b>로 동작하며, 키는 이 기기에만 저장됩니다. 복습·덱 저장은 오프라인. PDF/PPTX/DOCX는 첫 사용 시 파싱 라이브러리를 1회 내려받습니다.</p>
     </div>
     <div class="foot"><button class="btn" id="aboutClose">닫기</button></div>
   </div>
@@ -1260,8 +1267,8 @@ async function runLLM(topicMode){
   }catch(err){
     console.error(err);
     logEvent("LLM FAILED · "+(err.message||err),"am");
-    if(topicMode){ toast("주제 생성 실패: "+(err.message||err),"bad"); }
-    else { toast("Claude 실패: "+(err.message||err)+" — 오프라인 추출로 대체합니다.","bad"); doDistill(); }
+    toast("Claude 생성 실패: "+(err.message||err),"bad");
+    $("srcStat").innerHTML='<span style="color:var(--bad)">생성 실패: '+escapeHtml(err.message||String(err))+' — 키·모델·네트워크를 확인하세요.</span>';
   }finally{
     $("enhanceBtn").disabled=false; $("topicBtn").disabled=false;
     $("enhanceBtn").textContent="✦ Claude로 카드 생성";
@@ -1285,11 +1292,10 @@ async function handleFile(file){
     const text=await extractTextFromFile(file);
     if(!text||!text.trim()) throw new Error("텍스트를 추출하지 못했습니다");
     $("src").value=text;
-    $("srcStat").innerHTML='파일에서 <b style="color:var(--signal-cyan)">'+text.length.toLocaleString()+'</b>자 추출 — 분석합니다…';
-    logEvent("FILE · "+text.length+" chars extracted","");
-    toast(file.name+" 텍스트 추출 완료. 분석을 실행합니다.");
-    doDistill();
-    if(App.apiKey) setTimeout(()=>toast("더 깊게? ‘✦ Claude로 카드 생성’으로 강화하세요."),1400);
+    $("srcStat").innerHTML='파일에서 <b style="color:var(--signal-cyan)">'+text.length.toLocaleString()+'</b>자 추출 완료 — <b>✦ Claude로 카드 생성</b>을 누르세요.';
+    logEvent("FILE · "+text.length+" chars extracted → ready for Claude","");
+    toast(file.name+" 추출 완료. ✦ Claude로 카드 생성을 누르세요.");
+    if(!App.apiKey){ setTimeout(openKeyModal,600); }
   }catch(err){
     console.error(err);
     $("srcStat").innerHTML='<span style="color:var(--bad)">'+escapeHtml(err.message||String(err))+'</span>';
@@ -1341,9 +1347,10 @@ function showCard(){
   // ui state
   $("revealRow").classList.remove("rv-hide");
   $("gradeRow").classList.add("rv-hide");
+  $("gradeGuide").classList.add("rv-hide");
 }
-function fmtIvl(d){if(d<1)return "<1d";if(d<30)return d+"d";if(d<365)return (d/30).toFixed(d<90?1:0)+"mo";return (d/365).toFixed(1)+"y";}
-function revealCard(){$("cardEl").classList.add("revealed");$("revealRow").classList.add("rv-hide");$("gradeRow").classList.remove("rv-hide");}
+function fmtIvl(d){if(d<1)return "<1일";if(d<30)return d+"일";if(d<365)return (d/30).toFixed(d<90?1:0)+"개월";return (d/365).toFixed(1)+"년";}
+function revealCard(){$("cardEl").classList.add("revealed");$("revealRow").classList.add("rv-hide");$("gradeRow").classList.remove("rv-hide");$("gradeGuide").classList.remove("rv-hide");}
 function gradeCard(g){
   const s=App.session; if(s.idx>=s.queue.length)return;
   if(!$("cardEl").classList.contains("revealed")){revealCard();return;}
@@ -1368,7 +1375,7 @@ function endSession(){
   $("linkState").textContent="STANDBY";
   logEvent("◆ INJECTION COMPLETE · "+s.reviewed+" packets · integrity "+(s.reviewed?Math.round(s.correct/s.reviewed*100):0)+"%","am");
   $("cardEl").style.display="none";
-  $("revealRow").classList.add("rv-hide"); $("gradeRow").classList.add("rv-hide");
+  $("revealRow").classList.add("rv-hide"); $("gradeRow").classList.add("rv-hide"); $("gradeGuide").classList.add("rv-hide");
   const integ=s.reviewed?Math.round(s.correct/s.reviewed*100):0;
   const ret=Math.round(overallRetention()*100);
   $("summaryEl").classList.remove("rv-hide");
@@ -1594,7 +1601,7 @@ $("keySave").onclick=()=>{
   toast("키 저장됨. 강화를 실행합니다.");
   doEnhance();
 };
-$("distillBtn").onclick=doDistill;
+$("keyBtn").onclick=openKeyModal;
 $("enhanceBtn").onclick=doEnhance;
 $("sampleBtn").onclick=()=>{$("src").value=SAMPLE;toast("샘플 적재됨 — ‘분석·DISTILL’을 누르세요.");};
 $("topicBtn").onclick=doTopic;
