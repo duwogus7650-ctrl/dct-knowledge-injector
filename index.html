@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KNOWLEDGE // INJECTOR — 뉴럴 지식 주입 단말기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ground & structure */
+  --void-900:#060912; --void-800:#0A0F1E; --void-700:#111A30;
+  --hairline:#1C2A45; --hairline-bright:#2B4068; --axon:#16243F;
+  /* signal */
+  --signal-cyan:#21E6FF; --signal-cyan-dim:#0FA9C2; --signal-deep:#0C6E86;
+  --teal-data:#4CF0C4;
+  /* the single accent */
+  --inject-amber:#FFB23E; --inject-amber-hot:#FFD08A;
+  /* text */
+  --ink-100:#DCE7F5; --ink-300:#8FA6C4; --ink-500:#56688A;
+  /* semantic */
+  --retain-good:#21E6FF; --retain-warn:#FFB23E; --bad:#FF5C6E;
+  /* type */
+  --font-display:'Chakra Petch','Space Grotesk',sans-serif;
+  --font-ui:'Space Grotesk','Chakra Petch',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  /* rhythm */
+  --grid:4px; --rail-h:48px; --side-w:312px; --stream-h:92px;
+  --radius:4px; --border:1px solid var(--hairline);
+  --pad-panel:16px; --gap:12px;
+  --ls-label:0.10em; --ls-title:0.04em;
+  /* glow */
+  --glow-cyan:0 0 12px rgba(33,230,255,.45);
+  --glow-amber:0 0 16px rgba(255,178,62,.55);
+  /* motion */
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-io:cubic-bezier(.65,0,.35,1);
+  --t-fast:140ms; --t-med:320ms; --t-charge:600ms;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #0a1430 0%, transparent 60%),
+    var(--void-900);
+  color:var(--ink-100);
+  font-family:var(--font-ui);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.num,.mono{font-family:var(--font-mono);font-feature-settings:'tnum' 1,'zero' 1}
+.lbl{font-family:var(--font-display);text-transform:uppercase;letter-spacing:var(--ls-label);color:var(--ink-300);font-size:11px;font-weight:600}
+button{font-family:var(--font-ui);cursor:pointer}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--hairline-bright);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- LAYOUT ---------- */
+#app{display:grid;height:100vh;
+  grid-template-rows:var(--rail-h) 1fr var(--stream-h);
+  grid-template-columns:var(--side-w) 1fr var(--side-w);
+  grid-template-areas:"rail rail rail" "left stage right" "stream stream stream";
+  gap:1px;background:var(--hairline);
+}
+#rail{grid-area:rail;background:var(--void-800);display:flex;align-items:center;gap:18px;padding:0 18px}
+#left{grid-area:left;background:var(--void-800);display:flex;flex-direction:column;min-height:0}
+#stage{grid-area:stage;background:var(--void-900);position:relative;min-width:0;overflow:hidden}
+#right{grid-area:right;background:var(--void-800);display:flex;flex-direction:column;min-height:0}
+#stream{grid-area:stream;background:var(--void-800);position:relative;overflow:hidden}
+
+/* ---------- TOP RAIL ---------- */
+.brand{font-family:var(--font-display);font-weight:700;letter-spacing:0.06em;font-size:16px}
+.brand b{color:var(--signal-cyan);text-shadow:var(--glow-cyan)}
+.brand .slash{color:var(--ink-500)}
+#led{width:9px;height:9px;border-radius:50%;background:var(--signal-cyan);box-shadow:var(--glow-cyan);animation:breathe 2s var(--ease-io) infinite}
+@keyframes breathe{0%,100%{opacity:.4}50%{opacity:1}}
+.rail-mid{margin:0 auto;display:flex;gap:22px;align-items:baseline}
+.rail-mid .k{font-size:11px;color:var(--ink-500);letter-spacing:.08em;text-transform:uppercase}
+.rail-mid .v{font-size:13px;color:var(--ink-100)}
+.rail-right{display:flex;align-items:baseline;gap:8px}
+.rail-right .big{font-size:24px;font-weight:700;color:var(--signal-cyan);text-shadow:var(--glow-cyan)}
+.rail-right .pct{font-size:13px;color:var(--ink-300)}
+
+/* ---------- PANELS ---------- */
+.panel-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:var(--border)}
+.panel-h .lbl{font-size:11px}
+.panel-h .tag{font-size:10px;color:var(--signal-cyan-dim);font-family:var(--font-mono)}
+.scroll{overflow-y:auto;min-height:0;flex:1}
+.sect{padding:14px 16px;border-bottom:var(--border)}
+.hint{font-size:11.5px;color:var(--ink-500);line-height:1.5}
+textarea#src{width:100%;height:120px;resize:vertical;background:var(--void-900);border:1px solid var(--hairline-bright);
+  color:var(--ink-100);font-family:var(--font-mono);font-size:12px;line-height:1.5;border-radius:var(--radius);padding:10px}
+textarea#src:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0 0 0 1px var(--signal-deep)}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--hairline-bright);background:var(--void-700);color:var(--ink-100);
+  padding:8px 12px;border-radius:var(--radius);font-size:12px;font-weight:500;letter-spacing:.02em;transition:all var(--t-fast)}
+.btn:hover{border-color:var(--signal-cyan-dim);color:#fff}
+.btn.sm{padding:6px 9px;font-size:11px}
+.btn.ghost{background:transparent;border-color:var(--hairline)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{
+  width:100%;margin-top:6px;border:1px solid var(--inject-amber);
+  background:linear-gradient(180deg,rgba(255,178,62,.14),rgba(255,178,62,.04));
+  color:var(--inject-amber-hot);font-family:var(--font-display);font-weight:700;
+  letter-spacing:.10em;text-transform:uppercase;font-size:13px;padding:13px;border-radius:var(--radius);
+  transition:all var(--t-fast)}
+.btn-primary:hover:not(:disabled){box-shadow:var(--glow-amber);background:linear-gradient(180deg,rgba(255,178,62,.25),rgba(255,178,62,.08))}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;border-color:var(--hairline-bright);color:var(--ink-500);background:var(--void-700)}
+.btn-primary.fire{animation:firepulse .5s var(--ease-out)}
+@keyframes firepulse{0%{box-shadow:0 0 0 rgba(255,178,62,.0)}40%{box-shadow:0 0 28px rgba(255,178,62,.85)}100%{box-shadow:var(--glow-amber)}}
+
+/* manifest list */
+#manifest{padding:6px 8px}
+.pkt{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;
+  padding:8px 9px;border-radius:var(--radius);font-size:12px;border:1px solid transparent;transition:background var(--t-fast)}
+.pkt:hover{background:var(--void-700)}
+.pkt .dot{width:7px;height:7px;border-radius:50%;background:var(--axon);justify-self:center}
+.pkt.new .dot{background:var(--ink-500)}
+.pkt.due .dot{background:var(--inject-amber);box-shadow:0 0 6px rgba(255,178,62,.6)}
+.pkt.done .dot{background:var(--signal-cyan);box-shadow:var(--glow-cyan)}
+.pkt .ttl{color:var(--ink-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkt .ttl span{color:var(--ink-500);font-family:var(--font-mono);font-size:10px;margin-right:6px}
+.pkt .meta{font-family:var(--font-mono);font-size:10px;color:var(--ink-500)}
+.empty{padding:24px 16px;text-align:center;color:var(--ink-500);font-size:12px;line-height:1.6}
+
+/* telemetry */
+.gauge{padding:11px 16px;border-bottom:var(--border)}
+.gauge .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.gauge .gname{font-size:10.5px;color:var(--ink-300);letter-spacing:.06em;text-transform:uppercase}
+.gauge .gval{font-family:var(--font-mono);font-size:13px;color:var(--ink-100)}
+.gauge .gval.cy{color:var(--signal-cyan)}
+.gauge .gval.am{color:var(--inject-amber)}
+.track{height:5px;background:var(--void-900);border-radius:3px;overflow:hidden;border:1px solid var(--hairline)}
+.fill{height:100%;width:0%;background:linear-gradient(90deg,var(--signal-deep),var(--signal-cyan));
+  border-radius:3px;transition:width var(--t-med) var(--ease-io)}
+.fill.am{background:linear-gradient(90deg,#a8631a,var(--inject-amber))}
+#log{flex:1;overflow-y:auto;padding:8px 12px;font-family:var(--font-mono);font-size:10.5px;line-height:1.7;color:var(--ink-300);min-height:0}
+#log .t{color:var(--signal-cyan-dim)}
+#log .am{color:var(--inject-amber)}
+#log .g{color:var(--ink-500)}
+
+/* ---------- CENTER STAGE ---------- */
+#brain{position:absolute;inset:0;width:100%;height:100%;display:block}
+.corner{position:absolute;width:16px;height:16px;border:1px solid var(--hairline-bright);opacity:.7}
+.corner.tl{top:12px;left:12px;border-right:0;border-bottom:0}
+.corner.tr{top:12px;right:12px;border-left:0;border-bottom:0}
+.corner.bl{bottom:64px;left:12px;border-right:0;border-top:0}
+.corner.br{bottom:64px;right:12px;border-left:0;border-top:0}
+#stageHud{position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+#stageHud .st{font-family:var(--font-display);letter-spacing:.18em;font-size:11px;color:var(--ink-300);text-transform:uppercase}
+#stageHud .st b{color:var(--signal-cyan)}
+/* fill bar under brain */
+#fillWrap{position:absolute;left:48px;right:48px;bottom:30px}
+#fillWrap .flabel{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--ink-500);margin-bottom:5px;letter-spacing:.05em}
+#fillBar{height:8px;background:var(--void-800);border:1px solid var(--hairline);border-radius:4px;overflow:hidden;position:relative}
+#fillBarInner{height:100%;width:0%;background:linear-gradient(90deg,var(--signal-deep),var(--signal-cyan));
+  box-shadow:0 0 10px rgba(33,230,255,.5);transition:width var(--t-med) var(--ease-io)}
+#fillBarInner.charging{background:linear-gradient(90deg,var(--signal-deep),var(--signal-cyan) 88%,var(--inject-amber) 100%)}
+
+/* ---------- REVIEW OVERLAY ---------- */
+#review{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(700px 500px at 50% 40%, rgba(8,16,38,.86), rgba(6,9,18,.94));
+  backdrop-filter:blur(2px);padding:24px;z-index:5}
+#review.on{display:flex;animation:fadein var(--t-med) var(--ease-out)}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.rv-meta{font-family:var(--font-mono);font-size:11px;color:var(--ink-500);letter-spacing:.08em;margin-bottom:14px}
+.rv-meta b{color:var(--signal-cyan)}
+.card{width:min(640px,92vw);background:var(--void-800);border:1px solid var(--hairline-bright);border-radius:6px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 0 0 1px rgba(33,230,255,.04);overflow:hidden}
+.card .ctype{padding:9px 16px;border-bottom:var(--border);display:flex;justify-content:space-between;align-items:center}
+.card .ctype .lbl{font-size:10px}
+.card .ctype .src{font-family:var(--font-mono);font-size:10px;color:var(--ink-500)}
+.card .ctype .src.llm{color:var(--inject-amber)}
+.card .front{padding:30px 26px;font-size:20px;line-height:1.55;color:var(--ink-100);font-family:var(--font-ui);text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}
+.card .front .blank{color:var(--inject-amber);font-weight:700;letter-spacing:.04em}
+.card .back{display:none;border-top:1px dashed var(--hairline-bright);padding:20px 26px;background:rgba(33,230,255,.03)}
+.card.revealed .back{display:block;animation:fadein var(--t-fast) var(--ease-out)}
+.card .ans{font-size:22px;font-weight:700;color:var(--signal-cyan);text-align:center;text-shadow:var(--glow-cyan);margin-bottom:6px;font-family:var(--font-ui)}
+.card .expl{font-size:13.5px;color:var(--ink-300);line-height:1.6;margin-top:14px;padding-top:12px;border-top:1px solid var(--hairline)}
+.card .expl .k{color:var(--teal-data);font-family:var(--font-display);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px}
+.card .mnem{font-size:13px;color:var(--ink-300);line-height:1.5;margin-top:10px;font-style:italic}
+.rv-actions{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:min(640px,92vw)}
+.rv-reveal{padding:13px 40px;border:1px solid var(--signal-cyan-dim);background:var(--void-700);color:var(--signal-cyan);
+  font-family:var(--font-display);font-weight:600;letter-spacing:.1em;text-transform:uppercase;border-radius:var(--radius);font-size:13px}
+.rv-reveal:hover{box-shadow:var(--glow-cyan)}
+.grade{flex:1;min-width:120px;padding:12px 8px;border-radius:var(--radius);border:1px solid var(--hairline-bright);
+  background:var(--void-700);text-align:center;transition:all var(--t-fast)}
+.grade .g{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.05em;display:block}
+.grade .ivl{font-family:var(--font-mono);font-size:10px;color:var(--ink-500);margin-top:3px;display:block}
+.grade[data-g="1"]{border-color:#5a2630}.grade[data-g="1"]:hover{background:rgba(255,92,110,.12);border-color:var(--bad)}.grade[data-g="1"] .g{color:var(--bad)}
+.grade[data-g="2"]:hover{border-color:var(--inject-amber)}.grade[data-g="2"] .g{color:var(--inject-amber)}
+.grade[data-g="3"]:hover{border-color:var(--signal-cyan)}.grade[data-g="3"] .g{color:var(--signal-cyan)}
+.grade[data-g="4"]:hover{border-color:var(--teal-data)}.grade[data-g="4"] .g{color:var(--teal-data)}
+.rv-hide{display:none}
+.rv-exit{position:absolute;top:18px;right:18px;border:1px solid var(--hairline);background:transparent;color:var(--ink-300);
+  width:32px;height:32px;border-radius:var(--radius);font-size:16px;line-height:1}
+.rv-exit:hover{border-color:var(--bad);color:var(--bad)}
+.kbd{font-family:var(--font-mono);font-size:9px;color:var(--ink-500);background:var(--void-900);border:1px solid var(--hairline);border-radius:3px;padding:1px 4px;margin-left:5px}
+
+/* session summary */
+.summary{text-align:center;width:min(520px,92vw)}
+.summary h2{font-family:var(--font-display);color:var(--signal-cyan);letter-spacing:.08em;text-shadow:var(--glow-cyan);margin:0 0 6px}
+.summary p{color:var(--ink-300);font-size:13px;margin:4px 0 20px}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.sgrid .c{background:var(--void-800);border:var(--border);border-radius:var(--radius);padding:14px}
+.sgrid .c .n{font-family:var(--font-mono);font-size:26px;color:var(--signal-cyan)}
+.sgrid .c .l{font-size:10px;color:var(--ink-500);letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+
+/* ---------- BOTTOM STREAM ---------- */
+#streamCanvas{position:absolute;inset:0;width:100%;height:100%}
+.stream-label{position:absolute;left:14px;top:8px;z-index:2;pointer-events:none}
+.stream-label .lbl{font-size:10px}
+#streamReadout{position:absolute;right:14px;top:8px;font-family:var(--font-mono);font-size:10px;color:var(--ink-500);z-index:2}
+
+/* toast */
+#toast{position:fixed;bottom:108px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--void-700);border:1px solid var(--hairline-bright);border-left:3px solid var(--signal-cyan);
+  color:var(--ink-100);padding:11px 18px;border-radius:var(--radius);font-size:13px;z-index:50;
+  transition:all var(--t-med) var(--ease-out);max-width:80vw;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.warn{border-left-color:var(--inject-amber)}
+#toast.bad{border-left-color:var(--bad)}
+
+/* modal (api key / about) */
+.modal{position:fixed;inset:0;background:rgba(3,5,12,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal.on{display:flex}
+.modal .box{width:min(560px,94vw);background:var(--void-800);border:1px solid var(--hairline-bright);border-radius:6px;max-height:86vh;overflow:auto}
+.modal .box h3{font-family:var(--font-display);letter-spacing:.05em;margin:0;padding:16px 20px;border-bottom:var(--border);color:var(--ink-100);font-size:15px}
+.modal .body{padding:18px 20px;font-size:13px;line-height:1.65;color:var(--ink-300)}
+.modal .body input{width:100%;background:var(--void-900);border:1px solid var(--hairline-bright);color:var(--ink-100);
+  font-family:var(--font-mono);font-size:12px;padding:9px;border-radius:var(--radius);margin:8px 0}
+.modal .body code{font-family:var(--font-mono);color:var(--signal-cyan);font-size:12px}
+.modal .foot{padding:12px 20px;border-top:var(--border);display:flex;gap:10px;justify-content:flex-end}
+.warnbox{background:rgba(255,178,62,.08);border:1px solid rgba(255,178,62,.3);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--inject-amber-hot);margin:10px 0}
+
+/* ===== SOURCE PANEL CONTROLS (upload / model / effort) ===== */
+.src-block{margin-bottom:16px}
+.src-block:last-child{margin-bottom:0}
+.src-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-300);margin-bottom:7px}
+.src-hint{font-family:var(--font-mono);font-size:9.5px;font-weight:400;letter-spacing:.04em;text-transform:lowercase;color:var(--ink-500)}
+.dropzone{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:16px 12px 13px;border:1px dashed var(--hairline-bright);border-radius:4px;background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(33,230,255,.018) 9px 10px),var(--void-800);color:var(--ink-300);cursor:pointer;transition:border-color .14s,background-color .14s,box-shadow .14s,color .14s}
+.dropzone:hover{border-color:var(--signal-deep);color:var(--ink-100)}
+.dropzone:focus-visible{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0 0 0 1px var(--signal-deep) inset}
+.dropzone.is-drag{border-color:var(--signal-cyan);border-style:solid;color:var(--signal-cyan);background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(33,230,255,.05) 9px 10px),var(--void-700);box-shadow:0 0 0 1px var(--signal-deep) inset,0 0 16px -4px var(--signal-cyan)}
+.dropzone.has-file{border-style:solid;border-color:var(--hairline-bright)}
+.dz-glyph{width:24px;height:24px;color:var(--signal-cyan-dim);transition:color .14s,transform .14s}
+.dropzone.is-drag .dz-glyph{color:var(--signal-cyan);transform:translateY(-1px)}
+.dz-prompt{font-family:var(--font-display);font-size:11.5px;font-weight:600;letter-spacing:.06em}
+.dz-sub{font-family:var(--font-ui);font-size:10.5px;color:var(--ink-500)}
+.dz-browse{margin-top:4px}
+.dz-file{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;padding:6px 9px;border:1px solid var(--hairline);border-left:2px solid var(--teal-data);border-radius:4px;background:var(--void-900)}
+.dz-file-name{flex:1;min-width:0;font-family:var(--font-mono);font-size:11px;color:var(--ink-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dz-file-size{font-family:var(--font-mono);font-size:10px;color:var(--teal-data);flex-shrink:0}
+.select-shell{position:relative}
+.nut-select{-webkit-appearance:none;appearance:none;width:100%;padding:9px 30px 9px 11px;font-family:var(--font-mono);font-size:12px;color:var(--ink-100);background:var(--void-800);border:1px solid var(--hairline-bright);border-radius:4px;cursor:pointer;transition:border-color .14s,box-shadow .14s}
+.nut-select:hover{border-color:var(--signal-deep)}
+.nut-select:focus{outline:none;border-color:var(--signal-cyan-dim);box-shadow:0 0 0 1px var(--signal-deep) inset}
+.nut-select option{background:var(--void-700);color:var(--ink-100)}
+.sel-caret{position:absolute;top:50%;right:11px;width:12px;height:12px;transform:translateY(-50%);color:var(--signal-cyan-dim);pointer-events:none}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:2px;border:1px solid var(--hairline-bright);border-radius:4px;background:var(--axon)}
+.seg-item{appearance:none;border:0;border-radius:2px;padding:7px 4px;font-family:var(--font-mono);font-size:9.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-300);background:var(--void-800);cursor:pointer;transition:color .12s,background-color .12s,box-shadow .12s}
+.seg-item:hover{color:var(--ink-100);background:var(--void-700)}
+.seg-item:focus-visible{outline:none;box-shadow:0 0 0 1px var(--signal-cyan-dim) inset}
+.seg-item.is-active{color:var(--void-900);background:var(--signal-cyan);box-shadow:0 0 10px -3px var(--signal-cyan)}
+.seg-item.seg-hot{color:var(--inject-amber)}
+.seg-item.seg-hot:hover{color:var(--inject-amber-hot)}
+.seg-item.seg-hot.is-active{color:var(--void-900);background:var(--inject-amber);box-shadow:0 0 12px -2px var(--inject-amber),0 0 0 1px var(--inject-amber-hot) inset}
+#selftest{position:fixed;bottom:8px;left:10px;font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;z-index:40;color:var(--ink-500)}
+#selftest .ok{color:var(--signal-cyan)}#selftest .fail{color:var(--bad)}
+
+@media (max-width:980px){
+  #app{grid-template-columns:1fr;grid-template-rows:var(--rail-h) auto 46vh auto var(--stream-h);
+    grid-template-areas:"rail" "left" "stage" "right" "stream"}
+  :root{--side-w:auto}
+  #left,#right{max-height:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP RAIL -->
+  <header id="rail">
+    <div id="led" title="LINK STATUS"></div>
+    <div class="brand">KNOWLEDGE<span class="slash">//</span><b>INJECTOR</b></div>
+    <div class="rail-mid">
+      <div><span class="k">UPLINK</span> <span class="v num" id="linkState">STANDBY</span></div>
+      <div><span class="k">SESSION</span> <span class="v num" id="clock">00:00:00</span></div>
+      <div><span class="k">PAYLOAD</span> <span class="v num" id="deckCount">0</span></div>
+    </div>
+    <div class="rail-right" title="현재 뇌에 설치된 지식 비율(평균 회상확률)">
+      <span class="big num" id="globalRetain">0</span><span class="pct">% INSTALLED</span>
+    </div>
+    <button class="btn sm ghost" id="aboutBtn" style="margin-left:14px">?</button>
+  </header>
+
+  <!-- LEFT: SOURCE / PAYLOAD -->
+  <aside id="left">
+    <div class="panel-h"><span class="lbl">Source · 지식 소스</span><span class="tag" id="srcMode">OFFLINE</span></div>
+    <div class="scroll">
+      <div class="sect">
+        <div class="src-block">
+          <label class="src-label" for="nut-browse">SOURCE FEED<span class="src-hint">.pdf .pptx .docx .txt .md</span></label>
+          <div id="nut-drop" class="dropzone" role="button" tabindex="0" aria-label="문서 끌어놓기 또는 찾아보기">
+            <svg class="dz-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M12 4l-4 4M12 4l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <div class="dz-prompt">문서 끌어놓기 → 주입</div>
+            <div class="dz-sub">PDF · PPTX · DOCX · TXT</div>
+            <button type="button" id="nut-browse" class="btn sm ghost dz-browse">파일 찾기…</button>
+            <div class="dz-file" id="nut-file" hidden><span class="dz-file-name" id="nut-file-name">—</span><span class="dz-file-size" id="nut-file-size"></span></div>
+            <input type="file" id="nut-input" accept=".pdf,.pptx,.docx,.txt,.md" hidden>
+          </div>
+        </div>
+        <div class="hint">또는 자료를 붙여넣거나, <b>자연어로 주제를 물어보세요</b> — 예: "RAG가 뭔지 처음부터", "스페인어 기초 30개". 파일/자료가 없으면 주제만으로도 AI가 지식을 만들어 줍니다(Claude 키 필요).</div>
+        <textarea id="src" placeholder="여기에 자료 붙여넣기  ·  또는 배우고 싶은 주제를 자연어로 입력"></textarea>
+        <div class="row">
+          <button class="btn" id="distillBtn">⚛ 분석 · DISTILL</button>
+          <button class="btn ghost sm" id="sampleBtn">샘플</button>
+        </div>
+        <div class="src-block" style="margin-top:16px">
+          <label class="src-label" for="nut-model">MODEL<span class="src-hint">inference core</span></label>
+          <div class="select-shell">
+            <select id="nut-model" class="nut-select">
+              <option value="haiku-4.5">Haiku 4.5 · 빠름/저렴</option>
+              <option value="sonnet-4.6" selected>Sonnet 4.6 · 균형</option>
+              <option value="opus-4.8">Opus 4.8 · 최고</option>
+            </select>
+            <svg class="sel-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="src-block">
+          <label class="src-label">EFFORT · 노력<span class="src-hint" id="nut-effort-readout">standard</span></label>
+          <div class="seg" role="radiogroup" aria-label="Effort level" id="nut-effort">
+            <button type="button" class="seg-item" role="radio" aria-checked="false" data-effort="quick">Quick</button>
+            <button type="button" class="seg-item is-active" role="radio" aria-checked="true" data-effort="standard">Standard</button>
+            <button type="button" class="seg-item" role="radio" aria-checked="false" data-effort="deep">Deep</button>
+            <button type="button" class="seg-item seg-hot" role="radio" aria-checked="false" data-effort="ultracode">ULTRACODE</button>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" id="enhanceBtn" title="선택한 모델·노력으로 카드 생성">✦ Claude로 카드 생성</button>
+          <button class="btn ghost sm" id="topicBtn" title="자료 없이 주제만으로 지식 생성">🔍 주제로 찾기</button>
+        </div>
+        <div class="hint" id="srcStat" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel-h" style="border-top:var(--border)"><span class="lbl">Payload Manifest · 패킷</span><span class="tag" id="dueTag">DUE 0</span></div>
+      <div id="manifest">
+        <div class="empty" id="manifestEmpty">패킷 없음.<br>지식을 분석하면 여기에<br>적재됩니다.</div>
+      </div>
+    </div>
+    <div class="sect" style="border-top:var(--border);border-bottom:0">
+      <button class="btn-primary" id="injectBtn" disabled>▶ INITIATE INJECTION</button>
+      <div class="hint" style="margin-top:8px;text-align:center" id="injectHint">소스를 분석해 주입을 활성화하세요</div>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn ghost sm" id="exportBtn">↓ 덱 내보내기</button>
+        <button class="btn ghost sm" id="resetBtn">⟲ 초기화</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: BRAIN STAGE -->
+  <main id="stage">
+    <canvas id="brain"></canvas>
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <div id="stageHud"><div class="st">NEURAL UPLINK · <b id="hudState">CORTEX DORMANT</b></div></div>
+    <div id="fillWrap">
+      <div class="flabel"><span>KNOWLEDGE RETENTION</span><span class="num" id="fillPct">0.0%</span></div>
+      <div id="fillBar"><div id="fillBarInner"></div></div>
+    </div>
+
+    <!-- REVIEW OVERLAY -->
+    <div id="review">
+      <button class="rv-exit" id="rvExit" title="세션 종료 (Esc)">×</button>
+      <div class="rv-meta">INJECTING PACKET <b id="rvIdx">1</b> / <span id="rvTotal">1</span> · 남은 패킷 <span id="rvLeft" class="num">0</span></div>
+
+      <div class="card" id="cardEl">
+        <div class="ctype"><span class="lbl" id="cardType">CLOZE</span><span class="src" id="cardSrc">heuristic</span></div>
+        <div class="front" id="cardFront"></div>
+        <div class="back">
+          <div class="ans" id="cardAns"></div>
+          <div class="expl" id="cardExpl" style="display:none"><span class="k">Feynman</span><span id="cardExplTxt"></span></div>
+          <div class="mnem" id="cardMnem" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="rv-actions" id="revealRow">
+        <button class="rv-reveal" id="revealBtn">REVEAL · 정답 확인<span class="kbd">Space</span></button>
+      </div>
+      <div class="rv-actions rv-hide" id="gradeRow">
+        <button class="grade" data-g="1"><span class="g">AGAIN</span><span class="ivl" id="iv1">&lt;1d</span><span class="kbd">1</span></button>
+        <button class="grade" data-g="2"><span class="g">HARD</span><span class="ivl" id="iv2"></span><span class="kbd">2</span></button>
+        <button class="grade" data-g="3"><span class="g">GOOD</span><span class="ivl" id="iv3"></span><span class="kbd">3</span></button>
+        <button class="grade" data-g="4"><span class="g">EASY</span><span class="ivl" id="iv4"></span><span class="kbd">4</span></button>
+      </div>
+
+      <!-- summary -->
+      <div class="summary rv-hide" id="summaryEl"></div>
+    </div>
+  </main>
+
+  <!-- RIGHT: TELEMETRY -->
+  <aside id="right">
+    <div class="panel-h"><span class="lbl">Telemetry · 계측</span><span class="tag">FSRS-5</span></div>
+    <div class="scroll" style="flex:0 0 auto">
+      <div class="gauge"><div class="top"><span class="gname">Neurons Active</span><span class="gval cy" id="gNeurons">0 / 0</span></div><div class="track"><div class="fill" id="fNeurons"></div></div></div>
+      <div class="gauge"><div class="top"><span class="gname">Synapse Throughput</span><span class="gval" id="gThru">0.0 c/min</span></div><div class="track"><div class="fill" id="fThru"></div></div></div>
+      <div class="gauge"><div class="top"><span class="gname">Signal Integrity</span><span class="gval cy" id="gIntegrity">—</span></div><div class="track"><div class="fill" id="fIntegrity"></div></div></div>
+      <div class="gauge"><div class="top"><span class="gname">Retention vs Target</span><span class="gval" id="gTarget">0 / 90%</span></div><div class="track"><div class="fill am" id="fTarget"></div></div></div>
+      <div class="gauge"><div class="top"><span class="gname">Consolidated · 장기기억</span><span class="gval" id="gConsol">0</span></div><div class="track"><div class="fill" id="fConsol"></div></div></div>
+    </div>
+    <div class="panel-h" style="border-top:var(--border)"><span class="lbl">Event Log</span><span class="tag" id="logClock">t+0.0s</span></div>
+    <div id="log"></div>
+  </aside>
+
+  <!-- BOTTOM: DATA STREAM -->
+  <footer id="stream">
+    <canvas id="streamCanvas"></canvas>
+    <div class="stream-label"><span class="lbl">Ambient Data Stream · 지식 피드</span></div>
+    <div id="streamReadout" class="num">— Kb/s</div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+<div id="selftest">SELF-TEST <span id="stResult">…</span></div>
+
+<!-- API KEY MODAL -->
+<div class="modal" id="keyModal">
+  <div class="box">
+    <h3>✦ Claude 강화 — 깊은 카드 생성</h3>
+    <div class="body">
+      오프라인 분석은 본문에서 사실을 <b>추출</b>합니다(환각 0). Claude를 연결하면 "왜/어떻게" 개념 질문, 파인만식 쉬운 설명, 기억술까지 <b>생성</b>합니다. 빈 토픽만 입력해도 카드가 만들어집니다.
+      <div class="warnbox">⚠ API 키는 이 브라우저에서 Anthropic으로 <b>직접</b> 전송됩니다. 개인용 단일 사용자 도구에서만 쓰세요. 키는 이 기기 localStorage에만 저장됩니다.</div>
+      <input type="password" id="apiKey" placeholder="sk-ant-… (Anthropic API 키)" autocomplete="off">
+      <div style="font-size:11.5px">현재 모델: <code id="modelName">claude-sonnet-4-6</code> · 모델·노력 단계는 좌측 패널에서 선택. ULTRACODE = 멀티패스 + 최대 추론.</div>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" id="keyCancel">취소</button>
+      <button class="btn" id="keySave">저장 &amp; 강화 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT MODAL -->
+<div class="modal" id="aboutModal">
+  <div class="box">
+    <h3>KNOWLEDGE // INJECTOR</h3>
+    <div class="body">
+      <p style="margin-top:0"><b>카파시의 도서관, 뒤집어서.</b> "이 모든 책을 다 배울 순 없다 → 그러면 그걸 배울 수 있는 무언가를 만들자." 이 단말기가 그 무언가입니다. 지식을 던지면 대신 소화하고, 인간 뇌가 가장 잘 흡수하는 방식으로 당신 머리에 <b>주입</b>합니다.</p>
+      <p><b>주입의 과학(정직하게).</b> 신경망에 지식을 직접 <i>쓰는</i> 뇌 케이블은 아직 없습니다. 그래서 케이블 대신 가장 강력한 실증 학습기제 — <b>간격반복 + 능동인출</b> — 을 자동화했습니다. 망각곡선을 거슬러 "잊기 직전"마다 인출시켜 장기기억으로 고정합니다.</p>
+      <p><b>엔진:</b> <code>FSRS-5</code> — Anki에 탑재된, 10억+ 복습 데이터로 학습된 최신 스케줄러. 난이도(D)·안정성(S)·회상확률(R)을 분리 모델링합니다. 좌하단 SELF-TEST가 알고리즘을 6개 레퍼런스값에 대조해 매 로드마다 검증합니다.</p>
+      <p><b>흐름:</b> ① 자료 넣기 — <b>PDF·PPTX·DOCX·TXT 끌어놓기</b>, 텍스트 붙여넣기, 또는 <b>자연어로 주제 입력</b> → ② DISTILL(오프라인 추출, 환각 0) 또는 ✦ Claude로 카드 생성 / 🔍 주제로 찾기 → ③ INITIATE INJECTION → 인출·채점하면 뇌 격자가 채워집니다. 덱은 이 기기에 저장돼 이어집니다.</p>
+      <p><b>모델 &amp; 노력:</b> 좌측에서 <code>Haiku 4.5</code>(빠름)·<code>Sonnet 4.6</code>(균형)·<code>Opus 4.8</code>(최고) 중 선택. 노력은 Quick → Standard → Deep → <b>ULTRACODE</b>(멀티패스 + 최대 추론으로 더 깊고 넓게). 모델별 API 규약을 자동 준수합니다.</p>
+      <p><b>자연어 토픽 모드:</b> 파일이 없어도 "RAG가 뭔지 처음부터", "스페인어 기초 30개"처럼 물어보면 AI가 그 주제 지식을 찾아 카드로 만듭니다(Claude 키 필요).</p>
+      <p style="color:var(--ink-500);font-size:12px">100% 클라이언트 사이드. 서버 없음. 코어(추출·FSRS·복습)는 오프라인. PDF/PPTX/DOCX는 첫 사용 시 라이브러리 1회 다운로드, Claude 생성/토픽은 네트워크 필요.</p>
+    </div>
+    <div class="foot"><button class="btn" id="aboutClose">닫기</button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   KNOWLEDGE // INJECTOR  —  single-file neural knowledge-injection terminal
+   Engine: FSRS-5 (verified) · offline TextRank/RAKE distiller · optional Claude
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1) FSRS-5 SCHEDULER  (vanilla, zero-dep; verified against 6 reference vectors)
+   grade: 1=Again 2=Hard 3=Good 4=Easy
+--------------------------------------------------------------------------- */
+const FSRS = (function () {
+  const W = [
+    0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046,
+    1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315,
+    2.9898, 0.51655, 0.6621
+  ];
+  const DECAY = -0.5;
+  const FACTOR = Math.pow(0.9, 1 / DECAY) - 1;     // 19/81
+  const REQUEST_RETENTION = 0.9;
+  const MAX_INTERVAL = 36500;
+  const clampD = d => Math.min(Math.max(d, 1), 10);
+  const retrievability = (t, S) => Math.pow(1 + FACTOR * (t < 0 ? 0 : t) / S, DECAY);
+  const initStability = g => Math.max(W[g - 1], 0.1);
+  const initDifficulty = g => clampD(W[4] - Math.exp(W[5] * (g - 1)) + 1);
+  const D_EASY_INIT = clampD(W[4] - Math.exp(W[5] * 3) + 1);
+  const nextDifficulty = (D, g) => {
+    const Dp = D + (-W[6] * (g - 3)) * (10 - D) / 9;
+    return clampD(W[7] * D_EASY_INIT + (1 - W[7]) * Dp);
+  };
+  const stabilityAfterRecall = (D, S, R, g) => {
+    const hardPenalty = g === 2 ? W[15] : 1;
+    const easyBonus = g === 4 ? W[16] : 1;
+    const alpha = Math.exp(W[8]) * (11 - D) * Math.pow(S, -W[9]) *
+      (Math.exp(W[10] * (1 - R)) - 1) * hardPenalty * easyBonus;
+    return S * (1 + alpha);
+  };
+  const stabilityAfterForget = (D, S, R) =>
+    W[11] * Math.pow(D, -W[12]) * (Math.pow(S + 1, W[13]) - 1) * Math.exp(W[14] * (1 - R));
+  const nextInterval = S => {
+    const i = Math.round((S / FACTOR) * (Math.pow(REQUEST_RETENTION, 1 / DECAY) - 1));
+    return Math.max(1, Math.min(i, MAX_INTERVAL));
+  };
+  function schedule(card, grade, elapsedDays) {
+    let S, D;
+    const isNew = card == null || card.reps == null || card.reps === 0;
+    if (isNew) {
+      S = initStability(grade);
+      D = initDifficulty(grade);
+    } else {
+      const t = (elapsedDays == null) ? card.scheduledDays : elapsedDays;
+      const R = retrievability(t, card.stability);
+      D = nextDifficulty(card.difficulty, grade);
+      S = (grade === 1)
+        ? stabilityAfterForget(card.difficulty, card.stability, R)
+        : stabilityAfterRecall(card.difficulty, card.stability, R, grade);
+    }
+    const ivl = nextInterval(S);
+    return {
+      stability: S, difficulty: D,
+      reps: ((card && card.reps) || 0) + 1,
+      lapses: ((card && card.lapses) || 0) + (grade === 1 ? 1 : 0),
+      scheduledDays: ivl, intervalDays: ivl
+    };
+  }
+  // preview interval for each grade without mutating state
+  function previewIntervals(card, elapsedDays) {
+    const out = {};
+    for (let g = 1; g <= 4; g++) out[g] = schedule(card, g, elapsedDays).intervalDays;
+    return out;
+  }
+  return { schedule, previewIntervals, retrievability, initStability, initDifficulty,
+    nextDifficulty, stabilityAfterRecall, stabilityAfterForget, nextInterval,
+    W, DECAY, FACTOR, REQUEST_RETENTION, MAX_INTERVAL };
+})();
+
+/* ---------------------------------------------------------------------------
+   2) SELF-TEST — fail loudly if the injection math ever drifts
+--------------------------------------------------------------------------- */
+function runSelfTests() {
+  const approx = (a, b, tol) => Math.abs(a - b) <= (tol || 1e-6) * Math.max(1, Math.abs(b));
+  const T = [];
+  // new + Good
+  let r = FSRS.schedule(null, 3);
+  T.push(["new/Good S", approx(r.stability, 3.173)]);
+  T.push(["new/Good D", approx(r.difficulty, 5.282434422319005)]);
+  T.push(["new/Good ivl", r.intervalDays === 3]);
+  // new + Again
+  r = FSRS.schedule(null, 1);
+  T.push(["new/Again S", approx(r.stability, 0.40255)]);
+  T.push(["new/Again D", approx(r.difficulty, 7.1949)]);
+  T.push(["new/Again ivl", r.intervalDays === 1 && r.lapses === 1]);
+  // review S=10,D=5,t=10
+  const rc = { stability: 10, difficulty: 5, reps: 1, lapses: 0, scheduledDays: 10 };
+  r = FSRS.schedule(rc, 3, 10);
+  T.push(["rev/Good S", approx(r.stability, 32.954263992452184)]);
+  T.push(["rev/Good D", approx(r.difficulty, 4.991832707311108)]);
+  T.push(["rev/Good ivl", r.intervalDays === 33]);
+  r = FSRS.schedule(rc, 2, 10);
+  T.push(["rev/Hard S", approx(r.stability, 15.31391211425268)]);
+  T.push(["rev/Hard ivl", r.intervalDays === 15]);
+  r = FSRS.schedule(rc, 4, 10);
+  T.push(["rev/Easy S", approx(r.stability, 78.62865848463353)]);
+  T.push(["rev/Easy ivl", r.intervalDays === 79]);
+  // lapse S=20,D=7,t=30
+  r = FSRS.schedule({ stability: 20, difficulty: 7, reps: 3, lapses: 0, scheduledDays: 25 }, 1, 30);
+  T.push(["lapse R/S", approx(r.stability, 3.1468186524214206)]);
+  T.push(["lapse ivl", r.intervalDays === 3 && r.lapses === 1]);
+  const fails = T.filter(t => !t[1]);
+  const el = document.getElementById("stResult");
+  if (fails.length === 0) { el.innerHTML = '<span class="ok">PASS ' + T.length + '/' + T.length + ' · FSRS-5 verified</span>'; }
+  else { el.innerHTML = '<span class="fail">FAIL ' + fails.length + ' (' + fails.map(f=>f[0]).join(", ") + ')</span>'; console.error("FSRS self-test failures:", fails); }
+  console.log("[Knowledge Injector] FSRS-5 self-test:", T.length - fails.length, "/", T.length, "passed");
+  return fails.length === 0;
+}
+
+/* ---------------------------------------------------------------------------
+   3) OFFLINE DISTILLER  (text -> atomic cards; no deps, no hallucination)
+--------------------------------------------------------------------------- */
+const Distiller = (function () {
+  const STOP = new Set(("a the an and or but if then else of to in on at by for with as is are was were be been being this that these those it its from into over under again further once here there all any both each few more most other some such no nor not only own same so than too very can will just dont should now i you he she we they them his her their our your my me him us " +
+    "do does did doing have has had having would could may might must shall about above below up down out off because while during before after between against among also however therefore thus etc via per within without upon across around new use used using one two three").split(/\s+/));
+  const ABBREV = new Set(["mr","mrs","ms","dr","prof","sr","jr","st","vs","etc","e.g","i.e","fig","eq","no","al","inc","ltd","co","approx","cf","dept","est","gov","jan","feb","mar","apr","jun","jul","aug","sep","sept","oct","nov","dec"]);
+  function normalizeText(raw){
+    if(!raw) return "";
+    let t=String(raw).replace(/\r\n?/g,"\n").replace(/ /g," ")
+      .replace(/[‘’‛]/g,"'").replace(/[“”]/g,'"')
+      .replace(/[–—]/g,"-").replace(/https?:\/\/\S+/g," ")
+      .replace(/\(\s*\)/g," ").replace(/\[\s*\]/g," ").replace(/[([]\s*$/gm," ")
+      .replace(/\(\s*see[^)]*\)/gi," ")
+      .replace(/\b[Ss]ee (?:fig|figure|table|eq|equation|section|chapter)\.?\s*\d*\b/g," ")
+      .replace(/\b(?:e\.g\.|i\.e\.|cf\.)/gi," ")
+      .replace(/^\s*[\*\-•▪●]\s+/gm,"")
+      .replace(/^\s*\d+[\.\)]\s+/gm,"")
+      .replace(/[ \t]+/g," ").replace(/\s+([.,;:!?])/g,"$1").replace(/\n{2,}/g,"\n");
+    return t.trim();
+  }
+  function tokenize(s){
+    return (s.toLowerCase().match(/[a-z0-9가-힣][a-z0-9'+\-가-힣]*[a-z0-9가-힣]|[a-z0-9가-힣]/g)||[])
+      .filter(w=>w.length>1 && !STOP.has(w) && !/^\d+$/.test(w));
+  }
+  function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+  function segmentSentences(text){
+    const out=[]; const lines=text.split(/\n+/);
+    for(const line of lines){
+      const s=line.trim(); if(!s) continue;
+      let buf=""; const toks=s.split(/(\s+)/);
+      for(let i=0;i<toks.length;i++){
+        buf+=toks[i];
+        const m=toks[i].match(/([.!?．])["')\]]?$/);
+        if(m){
+          const wb=toks[i].replace(/["')\]]*[.!?]+["')\]]?$/,"").toLowerCase();
+          const isAbbrev=ABBREV.has(wb)||/^[a-z]\.$/i.test(toks[i]);
+          const next=(toks[i+2]||"").trim();
+          const nextIsLower=next&&/^[a-z]/.test(next);
+          if(!isAbbrev&&!nextIsLower){out.push(buf.trim());buf="";}
+        }
+      }
+      if(buf.trim()) out.push(buf.trim());
+    }
+    return out.map(s=>s.replace(/\s+/g," ").trim()).filter(s=>{
+      const wc=(s.match(/[A-Za-z0-9가-힣][A-Za-z0-9'\-가-힣]*/g)||[]).length;
+      if(wc<3||wc>60) return false;
+      if(/^(see|refer to|as shown in|note that)\b/i.test(s)&&wc<=8) return false;
+      return (tokenize(s)||[]).length>=2;
+    });
+  }
+  function tfidfScores(sentences){
+    const df=new Map();
+    const tk=sentences.map(s=>{const t=tokenize(s);new Set(t).forEach(w=>df.set(w,(df.get(w)||0)+1));return t;});
+    const N=sentences.length||1;
+    return tk.map((toks,i)=>{
+      if(!toks.length) return 0;
+      const tf=new Map(); toks.forEach(w=>tf.set(w,(tf.get(w)||0)+1));
+      let sc=0; tf.forEach((f,w)=>{sc+=(f/toks.length)*Math.log(1+N/(df.get(w)||1));});
+      return sc*(1+0.15*(1-i/N));
+    });
+  }
+  function textRankScores(sentences,{iterations=30,damping=0.85}={}){
+    const n=sentences.length; if(n===0) return []; if(n===1) return [1];
+    const toks=sentences.map(s=>new Set(tokenize(s)));
+    const sim=(a,b)=>{let c=0;a.forEach(w=>{if(b.has(w))c++;});const d=Math.log(a.size+1)+Math.log(b.size+1);return d>0?c/d:0;};
+    const Wm=Array.from({length:n},()=>new Float64Array(n)); const rs=new Float64Array(n);
+    for(let i=0;i<n;i++){for(let j=i+1;j<n;j++){const s=sim(toks[i],toks[j]);Wm[i][j]=s;Wm[j][i]=s;}for(let j=0;j<n;j++)rs[i]+=Wm[i][j];}
+    let sc=new Float64Array(n).fill(1/n);
+    for(let it=0;it<iterations;it++){
+      const nx=new Float64Array(n).fill((1-damping)/n);
+      for(let i=0;i<n;i++){if(rs[i]===0)continue;for(let j=0;j<n;j++)if(Wm[i][j]>0)nx[j]+=damping*(Wm[i][j]/rs[i])*sc[i];}
+      sc=nx;
+    }
+    return Array.from(sc);
+  }
+  function rankSentences(sentences,{method="auto",ratio=0.45,max=40}={}){
+    const useRank=method==="textrank"||(method==="auto"&&sentences.length<=150);
+    const scores=useRank?textRankScores(sentences):tfidfScores(sentences);
+    const order=scores.map((s,i)=>[s,i]).sort((a,b)=>b[0]-a[0]);
+    const keep=Math.max(1,Math.min(max,Math.ceil(sentences.length*ratio)));
+    const chosen=[],ct=[];
+    for(const [sc,i] of order){
+      if(chosen.length>=keep) break;
+      const t=new Set(tokenize(sentences[i]));
+      const dup=ct.some(p=>{let c=0;t.forEach(w=>{if(p.has(w))c++;});return t.size&&c/t.size>0.7;});
+      if(dup) continue;
+      chosen.push({index:i,sentence:sentences[i],score:sc}); ct.push(t);
+    }
+    return chosen.sort((a,b)=>a.index-b.index);
+  }
+  function extractKeyphrases(text,sentences){
+    const pf=new Map(),pr=new Map(),wf=new Map(),wd=new Map();
+    const lines=sentences&&sentences.length?sentences:[text];
+    for(const line of lines){
+      const words=line.match(/[A-Za-z0-9가-힣][A-Za-z0-9'+\-가-힣]*[A-Za-z0-9가-힣]|[A-Za-z가-힣]/g)||[];
+      let cur=[];
+      const flush=()=>{
+        if(!cur.length) return;
+        const phrase=cur.join(" "),key=phrase.toLowerCase();
+        if(key.length<2){cur=[];return;}
+        pf.set(key,(pf.get(key)||0)+1); if(!pr.has(key))pr.set(key,phrase);
+        const deg=cur.length-1;
+        cur.forEach(w=>{const lw=w.toLowerCase();wf.set(lw,(wf.get(lw)||0)+1);wd.set(lw,(wd.get(lw)||0)+deg);});
+        cur=[];
+      };
+      for(const w of words){
+        const lw=w.toLowerCase();
+        if(STOP.has(lw)||/^\d+$/.test(w)||ABBREV.has(lw.replace(/\.$/,""))||lw==="see"||lw==="fig") flush();
+        else cur.push(w);
+      }
+      flush();
+    }
+    const scored=[];
+    pf.forEach((freq,key)=>{
+      const surface=pr.get(key),ws=key.split(" ");
+      if(ws.length>4) return;
+      let score=0; ws.forEach(w=>{const f=wf.get(w)||1;score+=((wd.get(w)||0)+f)/f;});
+      if(/[A-Z]/.test(surface)&&!/^[A-Z]+$/.test(surface)) score*=1.25;
+      if(/^[A-Z]{2,6}$/.test(surface)) score*=1.6;
+      if(ws.length>=2) score*=1.15;
+      score*=1+Math.log(1+freq)*0.3;
+      scored.push({phrase:surface,key,score,freq,words:ws.length});
+    });
+    scored.sort((a,b)=>b.score-a.score);
+    const kept=[];
+    for(const c of scored){
+      if(kept.some(k=>k.key.includes(c.key)||c.key.includes(k.key))) continue;
+      kept.push(c); if(kept.length>=60) break;
+    }
+    return kept;
+  }
+  function makeClozeCards(ranked,keyphrases,{maxPerSentence=1,limit=60}={}){
+    const cards=[]; const byKey=new Map(keyphrases.map(k=>[k.key,k]));
+    const ordered=[...keyphrases].sort((a,b)=>b.phrase.length-a.phrase.length);
+    for(const rs of ranked){
+      const sent=rs.sentence; let made=0; const used=[];
+      for(const kp of ordered){
+        if(made>=maxPerSentence) break;
+        const m=new RegExp("\\b"+escRe(kp.phrase)+"\\b","i").exec(sent);
+        if(!m) continue;
+        const start=m.index,end=start+m[0].length;
+        if(used.some(([s,e])=>start<e&&end>s)) continue;
+        if(m[0].length/sent.length>0.6) continue;
+        if(start===0&&ordered.length>1) continue;
+        if(m[0].split(/\s+/).length>3) continue;
+        cards.push({type:"cloze",
+          front:sent.slice(0,start)+"______"+sent.slice(end),
+          back:m[0], salientTerm:m[0],
+          cloze:{answer:m[0],context:sent},
+          sourceSpan:{sentence:sent,sentenceIndex:rs.index,start,end},
+          score:rs.score*((byKey.get(kp.key)||{}).score||1)});
+        used.push([start,end]); made++;
+      }
+    }
+    return cards.sort((a,b)=>b.score-a.score).slice(0,limit);
+  }
+  const DEF=[
+    /^(.{2,60}?)\s+(?:is|are)\s+(?:a|an|the)\s+(.{6,200})$/i,
+    /^(.{2,60}?)\s+(?:is|are)\s+defined as\s+(.{6,200})$/i,
+    /^(.{2,60}?)\s+refers to\s+(.{6,200})$/i,
+    /^(.{2,60}?)\s+means\s+(.{6,200})$/i,
+    /^(.{2,60}?)(?:은|는|이란|란)\s+(.{4,200})(?:이다|입니다|다)$/,
+  ];
+  function makeQACards(ranked,keyphrases,{limit=40}={}){
+    const cards=[]; const keySet=new Set(keyphrases.map(k=>k.key));
+    for(const rs of ranked){
+      const sent=rs.sentence.replace(/[.;]\s*$/,""); let matched=false;
+      for(const pat of DEF){
+        const m=pat.exec(sent); if(!m) continue;
+        const term=m[1].trim().replace(/^(a|an|the)\s+/i,""),def=m[2].trim();
+        if(term.split(/\s+/).length>6||def.length<4) continue;
+        if(/^(it|this|that|these|those|there|they|he|she|we|one|그|이|저)$/i.test(term)) continue;
+        const known=keySet.has(term.toLowerCase())||[...keySet].some(k=>term.toLowerCase().includes(k));
+        const cop=/\b(are)\b/i.test(sent.slice(0,m[1].length+6))?"are":"is";
+        const isKo=/[가-힣]/.test(term);
+        cards.push({type:"qa",
+          front:isKo?(term+" — 무엇인가?"):("What "+cop+" "+term+"?"),
+          back:rs.sentence,
+          qa:{question:isKo?(term+" — 무엇인가?"):("What "+cop+" "+term+"?"),answer:rs.sentence},
+          salientTerm:term, sourceSpan:{sentence:rs.sentence,sentenceIndex:rs.index},
+          score:rs.score*(known?1.4:0.7)});
+        matched=true; break;
+      }
+      if(!matched){
+        const kp=keyphrases.find(k=>new RegExp("\\b"+escRe(k.phrase)+"\\b","i").test(rs.sentence));
+        if(kp) cards.push({type:"qa",
+          front:'"'+kp.phrase+'" 에 관한 핵심 사실을 떠올리세요:',
+          back:rs.sentence,
+          qa:{question:kp.phrase+" 관련 핵심 사실?",answer:rs.sentence},
+          salientTerm:kp.phrase, sourceSpan:{sentence:rs.sentence,sentenceIndex:rs.index},
+          score:rs.score*0.6});
+      }
+    }
+    return cards.sort((a,b)=>b.score-a.score).slice(0,limit);
+  }
+  function distill(rawText,opts={}){
+    const text=normalizeText(rawText);
+    const sentences=segmentSentences(text);
+    if(!sentences.length) return {ok:false,reason:"no_usable_sentences",cards:[],stats:{sentences:0}};
+    const ranked=rankSentences(sentences,{method:opts.method||"auto",ratio:opts.ratio||0.45});
+    const keyphrases=extractKeyphrases(text,sentences);
+    const cloze=makeClozeCards(ranked,keyphrases);
+    const qa=makeQACards(ranked,keyphrases);
+    const seen=new Set();
+    const cards=[...qa,...cloze].filter(c=>{const k=c.type+"|"+(c.back||"").toLowerCase().slice(0,80);if(seen.has(k))return false;seen.add(k);return true;});
+    const now=new Date().toISOString();
+    cards.forEach((c,i)=>{c.id="c"+Date.now().toString(36)+"_"+i;c.source="heuristic";c.createdAt=now;c.srs=freshSrs(now);});
+    return {ok:true,cards,keyphrases:keyphrases.slice(0,24).map(k=>k.phrase),
+      stats:{sentences:sentences.length,ranked:ranked.length,keyphrases:keyphrases.length,cards:cards.length}};
+  }
+  return {distill,normalizeText,segmentSentences};
+})();
+
+function freshSrs(now){return {stability:0,difficulty:0,reps:0,lapses:0,scheduledDays:0,due:now||new Date().toISOString(),lastReview:null};}
+
+/* ---------------------------------------------------------------------------
+   4) OPTIONAL LLM PATH  (Anthropic Messages API, direct from browser)
+--------------------------------------------------------------------------- */
+// Model registry — per-model API capabilities (verified vs claude-api skill).
+// temp: temperature accepted? (Opus 4.7/4.8 reject it -> 400). think: adaptive thinking supported?
+// effort: allowed output_config.effort values (Haiku 4.5 has none).
+const MODELS = {
+  "haiku-4.5":  { id:"claude-haiku-4-5",  label:"Haiku 4.5",  temp:true,  think:false, effort:null },
+  "sonnet-4.6": { id:"claude-sonnet-4-6", label:"Sonnet 4.6", temp:true,  think:true,  effort:["low","medium","high","max"] },
+  "opus-4.8":   { id:"claude-opus-4-8",   label:"Opus 4.8",   temp:false, think:true,  effort:["low","medium","high","xhigh","max"] }
+};
+// Effort ladder — maps the user's chosen effort to real API depth + multipass + chunking.
+const EFFORTS = {
+  quick:     { label:"Quick",     passes:1, maxCards:12, effort:"low",    think:false, chunkChars:9000, maxTok:2048 },
+  standard:  { label:"Standard",  passes:1, maxCards:20, effort:"medium", think:true,  chunkChars:8000, maxTok:4096 },
+  deep:      { label:"Deep",      passes:1, maxCards:32, effort:"high",   think:true,  chunkChars:7000, maxTok:8192 },
+  ultracode: { label:"ULTRACODE", passes:2, maxCards:64, effort:"max",    think:true,  chunkChars:6000, maxTok:8192 }
+};
+// Build a model-aware Messages-API body that won't 400 on any tier.
+function buildLLMBody(system, userContent){
+  const m = MODELS[App.model] || MODELS["sonnet-4.6"];
+  const e = EFFORTS[App.effort] || EFFORTS.standard;
+  const body = { model:m.id, max_tokens:e.maxTok, system, messages:[{role:"user",content:userContent}] };
+  if (m.think && e.think) body.thinking = { type:"adaptive" };   // adaptive only; budget_tokens 400s on Opus
+  if (m.effort){                                                 // omit entirely for Haiku 4.5
+    let eff = e.effort;
+    if (m.effort.indexOf(eff) === -1) eff = (eff==="xhigh" && m.effort.indexOf("max")>=0) ? "max" : m.effort[m.effort.length-1];
+    body.output_config = { effort: eff };
+  }
+  if (m.temp && !body.thinking) body.temperature = 0.4;          // temperature only where allowed + no thinking
+  return body;
+}
+function extractJsonArray(text){
+  if(!text) throw new Error("empty model response");
+  let t=text.trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");
+  const s=t.indexOf("["),e=t.lastIndexOf("]");
+  if(s===-1||e===-1||e<s) throw new Error("no JSON array in response");
+  return JSON.parse(t.slice(s,e+1));
+}
+let _llmSeq=0;
+const SYS_CARDS=["You are a master flashcard author for spaced-repetition study.",
+  "You output ONLY a JSON array of card objects. No prose, no markdown, no code fences.",
+  "Each card tests ONE atomic idea (minimum-information principle).",
+  "Cloze answers must be a short salient term, not a whole clause.",
+  "Every card includes a Feynman-style 'explanation' (plain language with a concrete analogy) and a 'mnemonic' (a vivid memory hook).",
+  "Be accurate; never invent facts not supported by the material.",
+  "Reply in the same language as the source/topic."].join(" ");
+function cardSchemaInstr(maxCards){
+  return "\n\nReturn a STRICT JSON array (max "+maxCards+" items). Each element MUST match exactly:\n"+
+  '{ "type":"cloze"|"qa", "front":string, "back":string, "salientTerm":string, "explanation":string, "mnemonic":string, "difficulty":1|2|3|4|5, "tags":string[] }\n'+
+  'Rules:\n- Output ONLY the JSON array, [ ... ]. No commentary, no fences.\n- For cloze use "______" (six underscores) for the blank in "front".\n- Mix cloze and qa. Valid JSON only: double-quoted keys/strings, no trailing commas.';
+}
+async function llmCall(system, userContent){
+  if(!App.apiKey) throw new Error("Claude API 키가 필요합니다.");
+  const body=buildLLMBody(system, userContent);
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"content-type":"application/json","x-api-key":App.apiKey,
+      "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify(body)
+  });
+  if(!resp.ok){const t=await resp.text().catch(()=>"");throw new Error("Anthropic API "+resp.status+": "+t.slice(0,300));}
+  const data=await resp.json();
+  if(data.stop_reason==="refusal") throw new Error("모델이 요청을 거부했습니다(안전 정책).");
+  const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+  return extractJsonArray(text);
+}
+function normLLMCards(raw){
+  const now=new Date().toISOString();
+  const mid=(MODELS[App.model]||{}).id||"claude";
+  return raw.map((c)=>({
+    id:"llm_"+Date.now().toString(36)+"_"+(_llmSeq++),
+    type:c.type==="qa"?"qa":"cloze",
+    front:String(c.front||""), back:String(c.back||""),
+    salientTerm:c.salientTerm||c.back||"",
+    cloze:c.type!=="qa"?{answer:c.back,context:c.front}:undefined,
+    qa:c.type==="qa"?{question:c.front,answer:c.back}:undefined,
+    explanation:c.explanation||"", mnemonic:c.mnemonic||"",
+    difficulty:Number(c.difficulty)||3, tags:Array.isArray(c.tags)?c.tags:[],
+    source:"llm", model:mid, createdAt:now, srs:freshSrs(now)
+  })).filter(c=>c.front&&c.back);
+}
+async function llmGenerateOnce(content,{topicMode,expand,existing,maxCards}){
+  let task;
+  if(expand){
+    task="You already generated cards for this material. Concepts already covered:\n"+existing+
+      "\n\nNow generate ADDITIONAL flashcards covering IMPORTANT facts, harder concepts, why/how reasoning, edge cases, and connections you MISSED. Do NOT repeat covered concepts.\n\n"+
+      (topicMode?("TOPIC:\n\n"+content):("SOURCE TEXT:\n\"\"\"\n"+content+"\n\"\"\""));
+  } else if(topicMode){
+    task="Generate flashcards that teach the essentials of this TOPIC (use your knowledge; be accurate and concrete):\n\n"+content;
+  } else {
+    task="Read the SOURCE TEXT and distill it into flashcards covering its most important, testable facts. Only use facts present in the text.\n\nSOURCE TEXT:\n\"\"\"\n"+content+"\n\"\"\"";
+  }
+  return normLLMCards(await llmCall(SYS_CARDS, task+cardSchemaInstr(maxCards)));
+}
+function chunkText(text, size){
+  if(text.length<=size) return [text];
+  const out=[]; const paras=String(text).split(/\n\n+/); let cur="";
+  for(const p of paras){
+    if(cur && (cur.length+2+p.length)>size){ out.push(cur); cur=p; }
+    else cur = cur?cur+"\n\n"+p:p;
+    while(cur.length>size){ out.push(cur.slice(0,size)); cur=cur.slice(size); }
+  }
+  if(cur.trim()) out.push(cur);
+  return out;
+}
+function dedupeCardsArr(arr){
+  const seen=new Set(); const out=[];
+  for(const c of arr){const k=c.type+"|"+(c.back||"").toLowerCase().slice(0,60);if(seen.has(k))continue;seen.add(k);out.push(c);}
+  return out;
+}
+// Model+effort aware generation: chunk long docs, multipass for ULTRACODE, optional topic mode.
+async function generateCardsLLM(sourceText,{topicMode=false}={}){
+  const e=EFFORTS[App.effort]||EFFORTS.standard;
+  const chunks = topicMode ? [String(sourceText)] : chunkText(sourceText, e.chunkChars);
+  const perCall = Math.max(8, chunks.length>1 ? Math.ceil(e.maxCards/chunks.length)+4 : e.maxCards);
+  let all=[];
+  for(let i=0;i<chunks.length;i++){
+    logEvent("LLM 생성 · 청크 "+(i+1)+"/"+chunks.length,"am");
+    all.push(...await llmGenerateOnce(chunks[i],{topicMode,expand:false,maxCards:perCall}));
+  }
+  if(e.passes>=2 && all.length){
+    logEvent("ULTRACODE · 확장 패스(누락 보강)","am");
+    const existing=all.map(c=>"- "+(c.salientTerm||c.front||"")).slice(0,80).join("\n");
+    const base = topicMode ? String(sourceText) : chunks.join("\n\n").slice(0, e.chunkChars*2);
+    try{ all.push(...await llmGenerateOnce(base,{topicMode,expand:true,existing,maxCards:Math.ceil(e.maxCards/2)})); }
+    catch(err){ logEvent("확장 패스 스킵: "+(err.message||err),"g"); }
+  }
+  return dedupeCardsArr(all);
+}
+
+/* ---------------------------------------------------------------------------
+   4b) FILE INGESTION  (PDF/PPTX/DOCX/TXT -> text, fully client-side, lazy-loaded)
+   pdf.js 3.11.174 UMD + JSZip 3.10.1 (verified). Libs load only when a file drops.
+--------------------------------------------------------------------------- */
+var __scriptPromises = Object.create(null);
+function loadScriptOnce(url){
+  if(__scriptPromises[url]) return __scriptPromises[url];
+  __scriptPromises[url]=new Promise(function(resolve,reject){
+    var existing=document.querySelector('script[data-lazy-src="'+url+'"]');
+    if(existing && existing.getAttribute('data-loaded')==='1'){ resolve(); return; }
+    var s=existing||document.createElement('script');
+    s.src=url; s.async=true; s.setAttribute('data-lazy-src',url);
+    s.onload=function(){ s.setAttribute('data-loaded','1'); resolve(); };
+    s.onerror=function(){
+      delete __scriptPromises[url];
+      try{ s.parentNode && s.parentNode.removeChild(s); }catch(e){}
+      reject(new Error((navigator&&navigator.onLine===false)
+        ? '오프라인 상태입니다. 이 형식은 라이브러리 다운로드가 필요해요. 한 번 연결 후 캐시되면 이후엔 오프라인도 됩니다.'
+        : '라이브러리를 불러오지 못했습니다: '+url+' (연결/차단 확인).'));
+    };
+    if(!existing) document.head.appendChild(s);
+  });
+  return __scriptPromises[url];
+}
+var PDFJS_SRC='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+var PDFJS_WORKER_SRC='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var JSZIP_SRC='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+async function ensurePdfJs(){
+  if(!window.pdfjsLib) await loadScriptOnce(PDFJS_SRC);
+  if(!window.pdfjsLib) throw new Error('pdf.js 로드 실패(차단된 빌드?).');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER_SRC;
+  return window.pdfjsLib;
+}
+async function ensureJSZip(){
+  if(!window.JSZip) await loadScriptOnce(JSZIP_SRC);
+  if(!window.JSZip) throw new Error('JSZip 로드 실패(차단된 빌드?).');
+  return window.JSZip;
+}
+async function extractPdfDetailed(arrayBuffer){
+  var pdfjsLib=await ensurePdfJs();
+  var bytes=new Uint8Array(arrayBuffer.slice(0));
+  var loadingTask=pdfjsLib.getDocument({data:bytes,isEvalSupported:false});
+  var pdf;
+  try{ pdf=await loadingTask.promise; }
+  catch(err){
+    var name=err&&err.name?String(err.name):'';
+    if(name==='PasswordException') throw new Error('암호로 보호된 PDF라 텍스트를 읽을 수 없습니다.');
+    if(name==='InvalidPDFException') throw new Error('유효하지 않거나 손상된 PDF입니다.');
+    throw new Error('PDF를 열 수 없습니다: '+(err&&err.message?err.message:'unknown'));
+  }
+  var parts=[];
+  try{
+    for(var p=1;p<=pdf.numPages;p++){
+      var page=await pdf.getPage(p);
+      var tc=await page.getTextContent();
+      var line=[];
+      for(var i=0;i<tc.items.length;i++){ var it=tc.items[i]; if(typeof it.str!=='string')continue; line.push(it.str); if(it.hasEOL) line.push('\n'); }
+      var pageText=line.join('').replace(/[ \t]+\n/g,'\n');
+      if(pageText.trim()) parts.push(pageText);
+      page.cleanup();
+    }
+  } finally { try{ await pdf.cleanup(); }catch(e){} try{ await pdf.destroy(); }catch(e){} }
+  var text=parts.join('\n\n').trim();
+  return { text:text, noTextFound:text.length===0, pageCount:pdf.numPages };
+}
+async function extractPdf(arrayBuffer){
+  var r=await extractPdfDetailed(arrayBuffer);
+  if(r.noTextFound) throw new Error('이 PDF엔 추출 가능한 텍스트가 없습니다(스캔/이미지 PDF). OCR 후 다시 시도하거나 텍스트를 붙여넣으세요.');
+  return r.text;
+}
+function _collectTagText(xmlDoc, localName){
+  var out=[];
+  var nodes=xmlDoc.getElementsByTagNameNS?xmlDoc.getElementsByTagNameNS('*',localName):null;
+  if(!nodes||nodes.length===0){
+    var all=xmlDoc.getElementsByTagName('*'); nodes=[];
+    for(var i=0;i<all.length;i++){ var ln=all[i].localName||all[i].nodeName.replace(/^.*:/,''); if(ln===localName) nodes.push(all[i]); }
+  }
+  for(var j=0;j<nodes.length;j++){ out.push(nodes[j].textContent!=null?nodes[j].textContent:''); }
+  return out;
+}
+function _parseXml(xmlString){
+  var doc=new DOMParser().parseFromString(xmlString,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('Office 파일 내부 XML이 손상됨.');
+  return doc;
+}
+async function _loadOfficeZip(arrayBuffer){
+  var JSZip=await ensureJSZip();
+  try{ return await JSZip.loadAsync(arrayBuffer); }
+  catch(e){ throw new Error('유효한 Office(PPTX/DOCX) 파일이 아니거나 손상되었습니다.'); }
+}
+async function extractPptx(arrayBuffer){
+  var zip=await _loadOfficeZip(arrayBuffer);
+  var slideFiles=[];
+  zip.forEach(function(relativePath,file){ if(file.dir)return; var m=relativePath.match(/^ppt\/slides\/slide(\d+)\.xml$/); if(m) slideFiles.push({n:parseInt(m[1],10),path:relativePath}); });
+  if(slideFiles.length===0) throw new Error('PPTX에서 슬라이드를 찾지 못했습니다(빈 파일이거나 구형 .ppt).');
+  slideFiles.sort(function(a,b){return a.n-b.n;});
+  var chunks=[];
+  for(var i=0;i<slideFiles.length;i++){
+    var xml=await zip.file(slideFiles[i].path).async('string');
+    var doc; try{ doc=_parseXml(xml); }catch(e){ continue; }
+    var runs=_collectTagText(doc,'t');
+    var slideText=runs.join('').replace(/ /g,' ').trim();
+    if(slideText) chunks.push('--- Slide '+slideFiles[i].n+' ---\n'+slideText);
+  }
+  var text=chunks.join('\n\n').trim();
+  if(!text) throw new Error('이 PPTX엔 추출 가능한 텍스트가 없습니다(이미지 슬라이드).');
+  return text;
+}
+async function extractDocx(arrayBuffer){
+  var zip=await _loadOfficeZip(arrayBuffer);
+  var entry=zip.file('word/document.xml');
+  if(!entry) throw new Error('word/document.xml 없음(유효한 .docx 아님 또는 구형 .doc).');
+  var xml=await entry.async('string'); var doc=_parseXml(xml);
+  var paras=doc.getElementsByTagNameNS?doc.getElementsByTagNameNS('*','p'):doc.getElementsByTagName('p');
+  var lines=[];
+  if(paras&&paras.length){ for(var i=0;i<paras.length;i++){ lines.push(_collectTagText(paras[i],'t').join('')); } }
+  else { lines.push(_collectTagText(doc,'t').join('')); }
+  var text=lines.join('\n').replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  if(!text) throw new Error('이 DOCX엔 추출 가능한 텍스트가 없습니다.');
+  return text;
+}
+function extractTxt(file){
+  return new Promise(function(resolve,reject){
+    if(!file){ reject(new Error('파일이 없습니다.')); return; }
+    var reader=new FileReader();
+    reader.onload=function(){ var s=reader.result==null?'':String(reader.result); if(s.charCodeAt(0)===0xFEFF) s=s.slice(1); resolve(s); };
+    reader.onerror=function(){ reject(new Error('텍스트 파일을 읽지 못했습니다.')); };
+    reader.readAsText(file,'utf-8');
+  });
+}
+async function extractTextFromFile(file){
+  var name=(file.name||'').toLowerCase();
+  var ext=name.indexOf('.')>=0?name.split('.').pop():'';
+  var mime=file.type||'';
+  if(ext==='txt'||ext==='md'||ext==='markdown'||mime==='text/plain'||mime==='text/markdown') return extractTxt(file);
+  var buf=await file.arrayBuffer();
+  if(ext==='pdf'||mime==='application/pdf') return extractPdf(buf);
+  if(ext==='pptx'||mime==='application/vnd.openxmlformats-officedocument.presentationml.presentation') return extractPptx(buf);
+  if(ext==='docx'||mime==='application/vnd.openxmlformats-officedocument.wordprocessingml.document') return extractDocx(buf);
+  throw new Error('지원하지 않는 형식: "'+(ext||mime||'unknown')+'". 지원: PDF, PPTX, DOCX, TXT, MD.');
+}
+
+/* ---------------------------------------------------------------------------
+   5) APP STATE + PERSISTENCE
+--------------------------------------------------------------------------- */
+const DAY=86400000;
+const LS_DECK="ki_deck_v1", LS_KEY="ki_apikey_v1", LS_STAT="ki_stats_v1", LS_MODEL="ki_model_v1", LS_EFFORT="ki_effort_v1";
+const App={
+  deck:[], apiKey:"", t0:Date.now(),
+  model:"sonnet-4.6", effort:"standard",
+  session:{active:false,queue:[],idx:0,total:0,correct:0,reviewed:0,startedAt:0},
+  stats:{totalReviews:0}
+};
+function saveDeck(){try{localStorage.setItem(LS_DECK,JSON.stringify(App.deck));}catch(e){}}
+function loadDeck(){try{const d=localStorage.getItem(LS_DECK);if(d)App.deck=JSON.parse(d)||[];}catch(e){App.deck=[];}}
+function loadKey(){try{App.apiKey=localStorage.getItem(LS_KEY)||"";}catch(e){}}
+
+function cardRetention(c){
+  const s=c.srs; if(!s||s.reps===0||!s.lastReview) return 0;
+  const t=(Date.now()-new Date(s.lastReview).getTime())/DAY;
+  return Math.max(0,Math.min(1,FSRS.retrievability(t,s.stability)));
+}
+function isDue(c){const s=c.srs;if(!s||s.reps===0)return true;return new Date(s.due).getTime()<=Date.now();}
+function overallRetention(){if(!App.deck.length)return 0;let sum=0;for(const c of App.deck)sum+=cardRetention(c);return sum/App.deck.length;}
+function consolidatedCount(){return App.deck.filter(c=>c.srs&&c.srs.reps>=2&&c.srs.stability>=21).length;}
+
+/* ---------------------------------------------------------------------------
+   6) DOM + UI
+--------------------------------------------------------------------------- */
+const $=id=>document.getElementById(id);
+let toastTimer=null;
+function toast(msg,kind){
+  const t=$("toast"); t.textContent=msg; t.className="show"+(kind?(" "+kind):"");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className="",2600);
+}
+function logEvent(msg,cls){
+  const l=$("log"); const t=((Date.now()-App.t0)/1000).toFixed(1);
+  const div=document.createElement("div");
+  div.innerHTML='<span class="t">[t+'+t+'s]</span> <span class="'+(cls||"")+'">'+msg+'</span>';
+  l.insertBefore(div,l.firstChild);
+  while(l.childElementCount>80) l.removeChild(l.lastChild);
+  $("logClock").textContent="t+"+t+"s";
+}
+
+function renderManifest(){
+  const m=$("manifest");
+  if(!App.deck.length){m.innerHTML='<div class="empty" id="manifestEmpty">패킷 없음.<br>지식을 분석하면 여기에<br>적재됩니다.</div>';return;}
+  const due=App.deck.filter(isDue).length;
+  $("dueTag").textContent="DUE "+due;
+  const frag=document.createDocumentFragment();
+  App.deck.slice(0,300).forEach((c,i)=>{
+    const s=c.srs; const cls=(s&&s.reps===0)?"new":(isDue(c)?"due":"done");
+    const div=document.createElement("div"); div.className="pkt "+cls;
+    const term=(c.salientTerm||c.front||"").replace(/______/g,"___").slice(0,46);
+    const reps=s?s.reps:0;
+    const meta=cls==="new"?"NEW":(cls==="due"?"DUE":(s.scheduledDays+"d"));
+    div.innerHTML='<span class="dot"></span><span class="ttl"><span>'+c.type.toUpperCase()+'</span>'+escapeHtml(term)+'</span><span class="meta">'+meta+'</span>';
+    frag.appendChild(div);
+  });
+  m.innerHTML=""; m.appendChild(frag);
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));}
+
+function updateTelemetry(){
+  const deck=App.deck, n=deck.length;
+  const ret=overallRetention();
+  // header
+  $("globalRetain").textContent=Math.round(ret*100);
+  $("deckCount").textContent=n;
+  // fill bar + brain
+  const pct=(ret*100);
+  $("fillPct").textContent=pct.toFixed(1)+"%";
+  $("fillBarInner").style.width=pct+"%";
+  Brain.setRetain(ret);
+  $("hudState").textContent = n===0?"CORTEX DORMANT" : (ret>0.85?"FULLY WIRED":ret>0.5?"UPLOADING":ret>0.15?"PARTIAL LINK":"CORTEX DORMANT");
+  // gauges
+  const litN=Brain.litCount(), totN=Brain.total();
+  $("gNeurons").textContent=litN+" / "+totN;
+  $("fNeurons").style.width=(totN?litN/totN*100:0)+"%";
+  // throughput
+  let thru=0;
+  if(App.session.active && App.session.reviewed>0){
+    const mins=(Date.now()-App.session.startedAt)/60000;
+    thru=mins>0?App.session.reviewed/mins:0;
+  }
+  $("gThru").textContent=thru.toFixed(1)+" c/min";
+  $("fThru").style.width=Math.min(100,thru/30*100)+"%";
+  // integrity (session accuracy)
+  if(App.session.reviewed>0){
+    const integ=App.session.correct/App.session.reviewed;
+    $("gIntegrity").textContent=Math.round(integ*100)+"%";
+    $("fIntegrity").style.width=(integ*100)+"%";
+  } else { $("gIntegrity").textContent="—"; $("fIntegrity").style.width="0%"; }
+  // retention vs target
+  $("gTarget").textContent=Math.round(ret*100)+" / 90%";
+  $("fTarget").style.width=Math.min(100,ret/0.9*100)+"%";
+  $("gTarget").className="gval "+(ret>=0.9?"cy":"am");
+  // consolidated
+  const cons=consolidatedCount();
+  $("gConsol").textContent=cons+" / "+n;
+  $("fConsol").style.width=(n?cons/n*100:0)+"%";
+  // inject button
+  const dueCount=deck.filter(isDue).length;
+  $("injectBtn").disabled=dueCount===0;
+  $("injectHint").textContent = n===0 ? "소스를 분석해 주입을 활성화하세요"
+    : dueCount>0 ? (dueCount+"개 패킷 주입 대기 — 지금 시작") : "모든 패킷이 고정됨. 잊을 때쯤 다시 알림.";
+}
+
+function refreshAll(){renderManifest();updateTelemetry();}
+
+/* ---------- distill action ---------- */
+function doDistill(){
+  const raw=$("src").value.trim();
+  if(!raw){toast("먼저 배울 자료를 붙여넣으세요.","warn");return;}
+  if(raw.length<30 && !/[.!?\n]/.test(raw)){
+    toast("이건 토픽처럼 보여요 — 오프라인은 본문 추출만 가능. ‘Claude 강화’로 토픽 카드 생성.","warn");
+  }
+  const res=Distiller.distill(raw);
+  if(!res.ok||!res.cards.length){
+    toast("사용 가능한 문장을 못 찾았습니다. 더 긴 본문을 넣어보세요.","bad");
+    $("srcStat").innerHTML='<span style="color:var(--bad)">추출 0 — 문장 부족</span>';
+    return;
+  }
+  mergeCards(res.cards);
+  $("srcStat").innerHTML='추출 완료 · 문장 <b>'+res.stats.sentences+'</b> → 카드 <b style="color:var(--signal-cyan)">'+res.cards.length+'</b> · 핵심어 '+res.stats.keyphrases;
+  logEvent("DISTILL · "+res.cards.length+" packets extracted (offline)","");
+  toast(res.cards.length+"개 지식 패킷을 적재했습니다. ▶ INITIATE INJECTION 준비 완료.");
+  feedStream(res.keyphrases);
+  refreshAll();
+}
+function mergeCards(newCards){
+  const sig=c=>c.type+"|"+(c.back||"").toLowerCase().slice(0,60)+"|"+(c.front||"").toLowerCase().slice(0,40);
+  const seen=new Set(App.deck.map(sig));
+  let added=0;
+  for(const c of newCards){const s=sig(c);if(seen.has(s))continue;seen.add(s);App.deck.push(c);added++;}
+  saveDeck();
+  return added;
+}
+
+/* ---------- generate with Claude (document enhance OR natural-language topic) ---------- */
+function curModelLabel(){ return (MODELS[App.model]||MODELS["sonnet-4.6"]).label; }
+async function runLLM(topicMode){
+  if(!App.apiKey){ openKeyModal(); return; }
+  const raw=$("src").value.trim();
+  if(!raw){ toast(topicMode?"배우고 싶은 주제를 자연어로 입력하세요.":"강화할 자료를 입력하거나 파일을 올리세요.","warn"); return; }
+  const e=EFFORTS[App.effort]||EFFORTS.standard;
+  $("enhanceBtn").disabled=true; $("topicBtn").disabled=true;
+  $("enhanceBtn").textContent=topicMode?"🔍 찾는 중…":"✦ 생성 중…";
+  $("srcMode").textContent=curModelLabel().toUpperCase(); $("linkState").textContent="GENERATING";
+  logEvent((topicMode?"TOPIC":"ENHANCE")+" · "+curModelLabel()+" / "+e.label,"am");
+  try{
+    const cards=await generateCardsLLM(raw,{topicMode});
+    if(!cards.length) throw new Error("카드를 파싱하지 못했습니다");
+    const added=mergeCards(cards);
+    logEvent("✦ "+cards.length+" cards ("+added+" new) · "+curModelLabel()+" / "+e.label,"am");
+    toast((topicMode?"주제로 ":"")+"Claude가 "+cards.length+"개 카드를 생성했습니다 (설명·기억술 포함).");
+    feedStream(cards.map(c=>c.salientTerm).filter(Boolean));
+    $("srcStat").innerHTML='Claude <b>'+curModelLabel()+'</b> · 노력 <b>'+e.label+'</b> → 카드 <b style="color:var(--signal-cyan)">'+cards.length+'</b>';
+    refreshAll();
+  }catch(err){
+    console.error(err);
+    logEvent("LLM FAILED · "+(err.message||err),"am");
+    if(topicMode){ toast("주제 생성 실패: "+(err.message||err),"bad"); }
+    else { toast("Claude 실패: "+(err.message||err)+" — 오프라인 추출로 대체합니다.","bad"); doDistill(); }
+  }finally{
+    $("enhanceBtn").disabled=false; $("topicBtn").disabled=false;
+    $("enhanceBtn").textContent="✦ Claude로 카드 생성";
+    $("srcMode").textContent=App.apiKey?curModelLabel().toUpperCase():"OFFLINE";
+    $("linkState").textContent=App.session.active?"INJECTING":"STANDBY";
+  }
+}
+function doEnhance(){ runLLM(false); }
+function doTopic(){ runLLM(true); }
+
+/* ---------- file upload -> extract -> distill ---------- */
+async function handleFile(file){
+  if(!file) return;
+  if(!/\.(pdf|pptx|docx|txt|md|markdown)$/i.test(file.name||"")){ toast("지원 형식: PDF, PPTX, DOCX, TXT, MD","bad"); return; }
+  $("nut-file").hidden=false; $("nut-file-name").textContent=file.name;
+  $("nut-file-size").textContent=(file.size/1024).toFixed(0)+" KB";
+  $("nut-drop").classList.add("has-file");
+  $("srcStat").innerHTML='파일 읽는 중… <span class="num">'+escapeHtml(file.name)+'</span>';
+  logEvent("FILE · "+file.name+" ("+(file.size/1024).toFixed(0)+"KB) 추출 시작","");
+  try{
+    const text=await extractTextFromFile(file);
+    if(!text||!text.trim()) throw new Error("텍스트를 추출하지 못했습니다");
+    $("src").value=text;
+    $("srcStat").innerHTML='파일에서 <b style="color:var(--signal-cyan)">'+text.length.toLocaleString()+'</b>자 추출 — 분석합니다…';
+    logEvent("FILE · "+text.length+" chars extracted","");
+    toast(file.name+" 텍스트 추출 완료. 분석을 실행합니다.");
+    doDistill();
+    if(App.apiKey) setTimeout(()=>toast("더 깊게? ‘✦ Claude로 카드 생성’으로 강화하세요."),1400);
+  }catch(err){
+    console.error(err);
+    $("srcStat").innerHTML='<span style="color:var(--bad)">'+escapeHtml(err.message||String(err))+'</span>';
+    logEvent("FILE FAILED · "+(err.message||err),"am");
+    toast(err.message||String(err),"bad");
+  }
+}
+
+/* ---------- review / injection session ---------- */
+function startInjection(){
+  const due=App.deck.filter(isDue);
+  if(!due.length){toast("주입할 패킷이 없습니다.","warn");return;}
+  // order: new cards first (by salience proxy = creation order), then due reviews soonest-due first
+  due.sort((a,b)=>{
+    const an=a.srs.reps===0?0:1, bn=b.srs.reps===0?0:1;
+    if(an!==bn) return an-bn;
+    return new Date(a.srs.due).getTime()-new Date(b.srs.due).getTime();
+  });
+  App.session={active:true,queue:due,idx:0,total:due.length,correct:0,reviewed:0,startedAt:Date.now()};
+  $("linkState").textContent="INJECTING";
+  const btn=$("injectBtn"); btn.classList.add("fire"); setTimeout(()=>btn.classList.remove("fire"),600);
+  logEvent("◆ INJECTION INITIATED · "+due.length+" packets queued","am");
+  Brain.pulse();
+  $("review").classList.add("on");
+  $("summaryEl").classList.add("rv-hide");
+  $("cardEl").style.display="";
+  showCard();
+}
+function showCard(){
+  const s=App.session;
+  if(s.idx>=s.queue.length){endSession();return;}
+  const c=s.queue[s.idx];
+  $("rvIdx").textContent=s.idx+1; $("rvTotal").textContent=s.total; $("rvLeft").textContent=s.queue.length-s.idx;
+  const card=$("cardEl"); card.classList.remove("revealed");
+  $("cardType").textContent=c.type.toUpperCase();
+  const srcEl=$("cardSrc"); srcEl.textContent=c.source==="llm"?("✦ "+(c.model||"claude")):"heuristic"; srcEl.className="src"+(c.source==="llm"?" llm":"");
+  // front
+  const front=c.type==="cloze"?String(c.front).replace(/______/g,'<span class="blank">______</span>'):escapeHtml(c.front);
+  $("cardFront").innerHTML=front;
+  // back
+  $("cardAns").textContent=c.type==="cloze"?c.back:c.back;
+  if(c.explanation){$("cardExpl").style.display="";$("cardExplTxt").textContent=c.explanation;}else{$("cardExpl").style.display="none";}
+  if(c.mnemonic){$("cardMnem").style.display="";$("cardMnem").textContent="🧷 "+c.mnemonic;}else{$("cardMnem").style.display="none";}
+  // grade interval previews
+  const elapsed=c.srs.lastReview?(Date.now()-new Date(c.srs.lastReview).getTime())/DAY:0;
+  const prev=FSRS.previewIntervals(c.srs.reps===0?null:c.srs,elapsed);
+  $("iv1").textContent=fmtIvl(prev[1]); $("iv2").textContent=fmtIvl(prev[2]);
+  $("iv3").textContent=fmtIvl(prev[3]); $("iv4").textContent=fmtIvl(prev[4]);
+  // ui state
+  $("revealRow").classList.remove("rv-hide");
+  $("gradeRow").classList.add("rv-hide");
+}
+function fmtIvl(d){if(d<1)return "<1d";if(d<30)return d+"d";if(d<365)return (d/30).toFixed(d<90?1:0)+"mo";return (d/365).toFixed(1)+"y";}
+function revealCard(){$("cardEl").classList.add("revealed");$("revealRow").classList.add("rv-hide");$("gradeRow").classList.remove("rv-hide");}
+function gradeCard(g){
+  const s=App.session; if(s.idx>=s.queue.length)return;
+  if(!$("cardEl").classList.contains("revealed")){revealCard();return;}
+  const c=s.queue[s.idx];
+  const elapsed=c.srs.lastReview?(Date.now()-new Date(c.srs.lastReview).getTime())/DAY:0;
+  const upd=FSRS.schedule(c.srs.reps===0?null:c.srs,g,elapsed);
+  const now=new Date();
+  c.srs={stability:upd.stability,difficulty:upd.difficulty,reps:upd.reps,lapses:upd.lapses,
+    scheduledDays:upd.intervalDays,due:new Date(now.getTime()+upd.intervalDays*DAY).toISOString(),lastReview:now.toISOString()};
+  s.reviewed++; if(g>=3)s.correct++; App.stats.totalReviews++;
+  const gname=["","AGAIN","HARD","GOOD","EASY"][g];
+  logEvent("packet "+(s.idx+1)+" · "+gname+" → next +"+upd.intervalDays+"d","");
+  saveDeck();
+  s.idx++;
+  // brain reacts immediately
+  Brain.spark();
+  updateTelemetry();
+  showCard();
+}
+function endSession(){
+  const s=App.session; s.active=false;
+  $("linkState").textContent="STANDBY";
+  logEvent("◆ INJECTION COMPLETE · "+s.reviewed+" packets · integrity "+(s.reviewed?Math.round(s.correct/s.reviewed*100):0)+"%","am");
+  $("cardEl").style.display="none";
+  $("revealRow").classList.add("rv-hide"); $("gradeRow").classList.add("rv-hide");
+  const integ=s.reviewed?Math.round(s.correct/s.reviewed*100):0;
+  const ret=Math.round(overallRetention()*100);
+  $("summaryEl").classList.remove("rv-hide");
+  $("summaryEl").innerHTML=
+    '<h2>INJECTION COMPLETE</h2>'+
+    '<p>이번 세션에 '+s.reviewed+'개 패킷을 뇌에 밀어넣었습니다. 잊을 때쯤 자동으로 다시 불러 고정합니다.</p>'+
+    '<div class="sgrid">'+
+      '<div class="c"><div class="n num">'+s.reviewed+'</div><div class="l">Packets</div></div>'+
+      '<div class="c"><div class="n num">'+integ+'%</div><div class="l">Integrity</div></div>'+
+      '<div class="c"><div class="n num">'+ret+'%</div><div class="l">Installed</div></div>'+
+    '</div>'+
+    '<button class="rv-reveal" id="sumClose">단말기로 복귀</button>';
+  $("sumClose").onclick=closeReview;
+  refreshAll();
+}
+function closeReview(){$("review").classList.remove("on");App.session.active=false;$("linkState").textContent="STANDBY";refreshAll();}
+
+/* ---------- stream feed ---------- */
+let streamTokens=["NEURON","SYNAPSE","AXON","MYELIN","CORTEX","ENGRAM","RECALL","STABILITY","RETRIEVAL","CONSOLIDATE","0x1F","SIGNAL","PAYLOAD","0xAE","ENCODE","HIPPOCAMPUS","DENDRITE","POTENTIATION"];
+function feedStream(words){if(words&&words.length){streamTokens=words.map(w=>String(w).toUpperCase().slice(0,18)).filter(Boolean).concat(streamTokens).slice(0,40);}}
+
+/* ---------------------------------------------------------------------------
+   7) BRAIN VISUALIZATION
+--------------------------------------------------------------------------- */
+const Brain=(function(){
+  const cv=$("brain"); const ctx=cv.getContext("2d");
+  let W=0,H=0,DPR=1;
+  let nodes=[],edges=[],fillOrder=[],entry=0;
+  let retain=0, litTarget=0;
+  const N=620;
+  const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let sparkT=0, pulseT=0;
+
+  function brainPath(p,cx,cy,sc){
+    // side-view brain: cerebrum (two overlapping ellipses) + cerebellum + stem, normalized
+    p.ellipse(cx-0.10*sc, cy-0.06*sc, 0.62*sc, 0.46*sc, -0.08, 0, Math.PI*2);
+    p.ellipse(cx+0.22*sc, cy-0.12*sc, 0.40*sc, 0.34*sc, 0.10, 0, Math.PI*2);
+    p.ellipse(cx-0.30*sc, cy+0.02*sc, 0.34*sc, 0.30*sc, 0, 0, Math.PI*2);
+    p.ellipse(cx+0.30*sc, cy+0.26*sc, 0.20*sc, 0.16*sc, 0, 0, Math.PI*2); // cerebellum
+  }
+  function resize(){
+    const r=cv.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1);
+    W=r.width;H=r.height; cv.width=Math.max(1,W*DPR); cv.height=Math.max(1,H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    build();
+  }
+  function build(){
+    nodes=[];
+    const cx=W*0.5, cy=H*0.46, sc=Math.min(W,H)*0.42;
+    const path=new Path2D(); brainPath(path,cx,cy,sc);
+    // rejection sample
+    let tries=0;
+    const minX=cx-sc, maxX=cx+sc*1.1, minY=cy-sc, maxY=cy+sc*0.9;
+    while(nodes.length<N && tries<N*60){
+      tries++;
+      const x=minX+Math.random()*(maxX-minX), y=minY+Math.random()*(maxY-minY);
+      if(ctx.isPointInPath(path,x*DPR,y*DPR)){ // isPointInPath uses device px when transform set? use untransformed check
+        nodes.push({x,y,charge:0,lit:false,phase:Math.random()*Math.PI*2});
+      }
+    }
+    // fallback if sampling failed (e.g., headless quirk): grid scatter
+    if(nodes.length<N*0.5){
+      nodes=[];
+      for(let i=0;i<N;i++){
+        const a=Math.random()*Math.PI*2, rr=Math.sqrt(Math.random());
+        nodes.push({x:cx+Math.cos(a)*rr*sc*0.9,y:cy+Math.sin(a)*rr*sc*0.7,charge:0,lit:false,phase:Math.random()*Math.PI*2});
+      }
+    }
+    // edges: k-NN(3)
+    edges=[];
+    const adj=nodes.map(()=>[]);
+    for(let i=0;i<nodes.length;i++){
+      const d=[];
+      for(let j=0;j<nodes.length;j++){if(i===j)continue;const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;d.push([dx*dx+dy*dy,j]);}
+      d.sort((a,b)=>a[0]-b[0]);
+      for(let k=0;k<3&&k<d.length;k++){const j=d[k][1];if(i<j)edges.push([i,j]);else edges.push([j,i]);adj[i].push(j);adj[j].push(i);}
+    }
+    // dedup edges
+    const eseen=new Set(); edges=edges.filter(([a,b])=>{const k=a+"_"+b;if(eseen.has(k))return false;eseen.add(k);return true;});
+    // entry = lowest node (brainstem) ; BFS fill order
+    entry=0; let maxY2=-1e9;
+    for(let i=0;i<nodes.length;i++)if(nodes[i].y>maxY2){maxY2=nodes[i].y;entry=i;}
+    const seen=new Array(nodes.length).fill(false); const q=[entry]; seen[entry]=true; fillOrder=[];
+    while(q.length){const v=q.shift();fillOrder.push(v);for(const w of adj[v])if(!seen[w]){seen[w]=true;q.push(w);}}
+    for(let i=0;i<nodes.length;i++)if(!seen[i])fillOrder.push(i);
+    applyLit();
+  }
+  function applyLit(){
+    litTarget=Math.floor(retain*nodes.length);
+    for(let i=0;i<fillOrder.length;i++){nodes[fillOrder[i]].lit = i<litTarget;}
+  }
+  function setRetain(r){retain=Math.max(0,Math.min(1,r));applyLit();}
+  function litCount(){return litTarget;}
+  function total(){return nodes.length;}
+  function spark(){sparkT=1;}
+  function pulse(){pulseT=1;}
+
+  function colorFor(ch){
+    if(ch<0.4) return "12,110,134";      // signal-deep
+    if(ch<0.8) return "15,169,194";       // cyan-dim
+    return "33,230,255";                   // cyan
+  }
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000); last=now;
+    ctx.clearRect(0,0,W,H);
+    // edges
+    ctx.lineWidth=0.7;
+    for(let e=0;e<edges.length;e++){
+      const a=nodes[edges[e][0]],b=nodes[edges[e][1]];
+      if(a.lit&&b.lit){
+        const c=Math.min(a.charge,b.charge);
+        ctx.strokeStyle="rgba("+colorFor(c)+","+(0.10+c*0.5)+")";
+      } else {
+        ctx.strokeStyle="rgba(22,36,63,0.28)";
+      }
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+    // nodes
+    ctx.globalCompositeOperation="lighter";
+    for(let i=0;i<nodes.length;i++){
+      const nd=nodes[i];
+      // charge ramp
+      const target=nd.lit?1:0;
+      nd.charge += (target-nd.charge)*Math.min(1,dt*(reduce?20:3.2));
+      if(nd.charge<0.02){ // dormant dot (draw in normal mode after)
+        continue;
+      }
+      let ch=nd.charge;
+      if(!reduce && nd.lit) ch=Math.max(0,Math.min(1,ch+0.08*Math.sin(now*0.0016+nd.phase)));
+      const boost=sparkT>0?1+sparkT*0.5:1;
+      const rad=(2+ch*3.4)*boost;
+      const col=colorFor(ch);
+      const g=ctx.createRadialGradient(nd.x,nd.y,0,nd.x,nd.y,rad*2.2);
+      g.addColorStop(0,"rgba("+col+","+(0.85*ch)+")");
+      g.addColorStop(1,"rgba("+col+",0)");
+      ctx.fillStyle=g; ctx.beginPath();ctx.arc(nd.x,nd.y,rad*2.2,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalCompositeOperation="source-over";
+    // dormant dots
+    ctx.fillStyle="rgba(22,36,63,0.9)";
+    for(let i=0;i<nodes.length;i++){if(nodes[i].charge<0.06){ctx.beginPath();ctx.arc(nodes[i].x,nodes[i].y,1,0,Math.PI*2);ctx.fill();}}
+    // entry pulse on inject
+    if(pulseT>0){
+      const e=nodes[entry];
+      ctx.strokeStyle="rgba(255,178,62,"+pulseT+")"; ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(e.x,e.y,(1-pulseT)*Math.min(W,H)*0.5+10,0,Math.PI*2);ctx.stroke();
+      pulseT-=dt*0.7; if(pulseT<0)pulseT=0;
+    }
+    if(sparkT>0){sparkT-=dt*2.2;if(sparkT<0)sparkT=0;}
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener("resize",()=>{clearTimeout(window.__brz);window.__brz=setTimeout(resize,150);});
+  resize();
+  requestAnimationFrame(frame);
+  return {setRetain,litCount,total,spark,pulse,resize};
+})();
+
+/* ---------------------------------------------------------------------------
+   8) DATA STREAM CANVAS
+--------------------------------------------------------------------------- */
+(function(){
+  const cv=$("streamCanvas"); const ctx=cv.getContext("2d");
+  let W=0,H=0,DPR=1,off=0;
+  const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function resize(){const r=cv.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+  window.addEventListener("resize",resize); resize();
+  let last=performance.now();
+  function frame(now){
+    const dt=(now-last)/1000;last=now;
+    ctx.clearRect(0,0,W,H);
+    // oscilloscope
+    ctx.strokeStyle="rgba(76,240,196,0.5)";ctx.lineWidth=1.2;ctx.beginPath();
+    for(let x=0;x<=W;x+=4){
+      const y=H*0.5+Math.sin((x*0.03)+now*0.004)*8*Math.sin(now*0.0011)+Math.sin(x*0.13+now*0.009)*3;
+      x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // scrolling tokens
+    if(!reduce) off-=dt*46; if(off<-4000)off=0;
+    ctx.font="11px 'JetBrains Mono', monospace"; ctx.textBaseline="middle";
+    let x=off%2000; let i=0;
+    while(x<W){
+      const tok=streamTokens[i%streamTokens.length];
+      const w=ctx.measureText(tok).width;
+      ctx.fillStyle = (i%4===0)?"rgba(33,230,255,0.55)":"rgba(143,166,196,0.30)";
+      ctx.fillText(tok, x, H*0.5);
+      x+=w+34; i++;
+    }
+    $("streamReadout").textContent=(120+Math.round(Math.abs(Math.sin(now*0.002))*880))+" Kb/s";
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ---------------------------------------------------------------------------
+   9) CLOCK
+--------------------------------------------------------------------------- */
+setInterval(()=>{
+  const s=Math.floor((Date.now()-App.t0)/1000);
+  const hh=String(Math.floor(s/3600)).padStart(2,"0"),mm=String(Math.floor(s/60)%60).padStart(2,"0"),ss=String(s%60).padStart(2,"0");
+  $("clock").textContent=hh+":"+mm+":"+ss;
+},1000);
+
+/* ---------------------------------------------------------------------------
+   10) SAMPLE CONTENT
+--------------------------------------------------------------------------- */
+const SAMPLE=`Spaced repetition is a learning technique that schedules reviews at increasing intervals to exploit the spacing effect. The spacing effect is the finding that information is retained better when study is spread out over time rather than crammed. Active recall is the practice of actively retrieving information from memory, which strengthens the memory trace far more than passive rereading. The forgetting curve, described by Hermann Ebbinghaus, shows that memory of new information decays exponentially unless it is reinforced. FSRS is a modern scheduling algorithm based on the DSR model, which separates difficulty, stability, and retrievability. Stability is the number of days it takes for recall probability to fall to ninety percent. Retrievability is the current probability that an item can be recalled. The testing effect means that taking a test on material improves long-term retention more than restudying the same material. Interleaving is the strategy of mixing different topics during practice, which improves discrimination and transfer. Elaboration is connecting new information to things you already know, which creates more retrieval routes in memory.`;
+
+/* ---------------------------------------------------------------------------
+   11) MODALS + EVENTS
+--------------------------------------------------------------------------- */
+function openKeyModal(){$("apiKey").value=App.apiKey||"";$("keyModal").classList.add("on");$("apiKey").focus();}
+function closeKeyModal(){$("keyModal").classList.remove("on");}
+$("aboutBtn").onclick=()=>$("aboutModal").classList.add("on");
+$("aboutClose").onclick=()=>$("aboutModal").classList.remove("on");
+$("keyCancel").onclick=closeKeyModal;
+$("keySave").onclick=()=>{
+  const k=$("apiKey").value.trim();
+  if(!k){toast("키를 입력하거나 취소하세요.","warn");return;}
+  App.apiKey=k; try{localStorage.setItem(LS_KEY,k);}catch(e){}
+  $("srcMode").textContent="CLAUDE"; closeKeyModal();
+  toast("키 저장됨. 강화를 실행합니다.");
+  doEnhance();
+};
+$("distillBtn").onclick=doDistill;
+$("enhanceBtn").onclick=doEnhance;
+$("sampleBtn").onclick=()=>{$("src").value=SAMPLE;toast("샘플 적재됨 — ‘분석·DISTILL’을 누르세요.");};
+$("topicBtn").onclick=doTopic;
+// file drop / browse
+(function(){
+  const drop=$("nut-drop"), input=$("nut-input"), browse=$("nut-browse");
+  if(!drop) return;
+  browse.onclick=(e)=>{ e.stopPropagation(); input.click(); };
+  drop.onclick=()=>input.click();
+  drop.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); input.click(); } };
+  input.onchange=()=>{ if(input.files&&input.files[0]) handleFile(input.files[0]); input.value=""; };
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,(e)=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add("is-drag"); }));
+  ["dragleave","dragend"].forEach(ev=>drop.addEventListener(ev,(e)=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove("is-drag"); }));
+  drop.addEventListener("drop",(e)=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove("is-drag"); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) handleFile(f); });
+})();
+// model picker
+$("nut-model").onchange=()=>{
+  App.model=$("nut-model").value; try{localStorage.setItem(LS_MODEL,App.model);}catch(e){}
+  const m=MODELS[App.model]; if(m){ $("modelName").textContent=m.id; if(App.apiKey)$("srcMode").textContent=m.label.toUpperCase(); logEvent("MODEL → "+m.label,"g"); }
+};
+// effort segmented control
+document.querySelectorAll("#nut-effort .seg-item").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#nut-effort .seg-item").forEach(x=>{ x.classList.remove("is-active"); x.setAttribute("aria-checked","false"); });
+  b.classList.add("is-active"); b.setAttribute("aria-checked","true");
+  App.effort=b.dataset.effort; try{localStorage.setItem(LS_EFFORT,App.effort);}catch(e){}
+  const e=EFFORTS[App.effort]||{}; $("nut-effort-readout").textContent=(e.label||App.effort).toLowerCase();
+  logEvent("EFFORT → "+(e.label||App.effort),"g");
+});
+$("injectBtn").onclick=startInjection;
+$("revealBtn").onclick=revealCard;
+$("rvExit").onclick=closeReview;
+document.querySelectorAll(".grade").forEach(b=>b.onclick=()=>gradeCard(+b.dataset.g));
+$("exportBtn").onclick=()=>{
+  if(!App.deck.length){toast("내보낼 덱이 없습니다.","warn");return;}
+  const blob=new Blob([JSON.stringify(App.deck,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="knowledge-injector-deck.json";a.click();
+  toast("덱을 JSON으로 내보냈습니다.");
+};
+$("resetBtn").onclick=()=>{
+  if(!App.deck.length){toast("이미 비어 있습니다.");return;}
+  if(confirm("덱 전체를 삭제할까요? 되돌릴 수 없습니다.")){App.deck=[];saveDeck();logEvent("DECK CLEARED","am");refreshAll();toast("초기화 완료.");}
+};
+// keyboard
+document.addEventListener("keydown",e=>{
+  if($("keyModal").classList.contains("on")||$("aboutModal").classList.contains("on")){if(e.key==="Escape"){closeKeyModal();$("aboutModal").classList.remove("on");}return;}
+  if(!$("review").classList.contains("on")) return;
+  if(e.key==="Escape"){closeReview();return;}
+  const revealed=$("cardEl").classList.contains("revealed");
+  if((e.key===" "||e.key==="Enter")&&!revealed){e.preventDefault();revealCard();return;}
+  if(revealed&&["1","2","3","4"].includes(e.key)){e.preventDefault();gradeCard(+e.key);}
+});
+
+/* ---------------------------------------------------------------------------
+   12) BOOT
+--------------------------------------------------------------------------- */
+runSelfTests();
+loadDeck(); loadKey();
+try{ App.model=localStorage.getItem(LS_MODEL)||App.model; App.effort=localStorage.getItem(LS_EFFORT)||App.effort; }catch(e){}
+if(!MODELS[App.model]) App.model="sonnet-4.6";
+if(!EFFORTS[App.effort]) App.effort="standard";
+if($("nut-model")) $("nut-model").value=App.model;
+if($("nut-effort-readout")) $("nut-effort-readout").textContent=(EFFORTS[App.effort].label||App.effort).toLowerCase();
+document.querySelectorAll("#nut-effort .seg-item").forEach(x=>{ const on=x.dataset.effort===App.effort; x.classList.toggle("is-active",on); x.setAttribute("aria-checked",on?"true":"false"); });
+if(MODELS[App.model] && $("modelName")) $("modelName").textContent=MODELS[App.model].id;
+if(App.apiKey)$("srcMode").textContent=(MODELS[App.model]||MODELS["sonnet-4.6"]).label.toUpperCase();
+if(App.deck.length){
+  feedStream(App.deck.map(c=>c.salientTerm).filter(Boolean).slice(0,20));
+  logEvent("DECK RESTORED · "+App.deck.length+" packets from local storage","");
+}
+logEvent("SYSTEM ONLINE · neural uplink standby","g");
+refreshAll();
+// re-render brain once fonts/layout settle
+setTimeout(()=>{Brain.resize();updateTelemetry();},300);
+</script>
+</body>
+</html>
